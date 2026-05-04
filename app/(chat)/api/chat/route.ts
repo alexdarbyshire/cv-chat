@@ -23,12 +23,14 @@ import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { generateTailoredResumeTool } from "@/lib/ai/tools/generate-tailored-resume";
+import { getRecentActivityTool } from "@/lib/ai/tools/get-recent-activity";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { searchCareerHistoryTool } from "@/lib/ai/tools/search-career-history";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import {
   GENERATE_TAILORED_RESUME_TOOL,
+  GET_RECENT_ACTIVITY_TOOL,
   isProductionEnvironment,
   SEARCH_CAREER_HISTORY_TOOL,
 } from "@/lib/constants";
@@ -213,6 +215,7 @@ export async function POST(request: Request) {
                   "requestSuggestions",
                   SEARCH_CAREER_HISTORY_TOOL,
                   GENERATE_TAILORED_RESUME_TOOL,
+                  GET_RECENT_ACTIVITY_TOOL,
                 ],
           providerOptions: {
             ...(modelConfig?.gatewayOrder && {
@@ -245,6 +248,7 @@ export async function POST(request: Request) {
               session,
               dataStream,
             }),
+            [GET_RECENT_ACTIVITY_TOOL]: getRecentActivityTool(),
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,

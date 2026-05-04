@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { createDocument } from "./ai/tools/create-document";
 import type { generateTailoredResumeTool } from "./ai/tools/generate-tailored-resume";
+import type { getRecentActivityTool } from "./ai/tools/get-recent-activity";
 import type { getWeather } from "./ai/tools/get-weather";
 import type { requestSuggestions } from "./ai/tools/request-suggestions";
 import type { searchCareerHistoryTool } from "./ai/tools/search-career-history";
@@ -27,6 +28,9 @@ type searchCareerHistoryUITool = InferUITool<
 type generateTailoredResumeUITool = InferUITool<
   ReturnType<typeof generateTailoredResumeTool>
 >;
+type getRecentActivityUITool = InferUITool<
+  ReturnType<typeof getRecentActivityTool>
+>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -35,6 +39,7 @@ export type ChatTools = {
   requestSuggestions: requestSuggestionsTool;
   searchCareerHistory: searchCareerHistoryUITool;
   generateTailoredResume: generateTailoredResumeUITool;
+  getRecentActivity: getRecentActivityUITool;
 };
 
 export type CustomUIDataTypes = {

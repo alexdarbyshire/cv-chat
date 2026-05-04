@@ -351,6 +351,38 @@ const PurePreviewMessage = ({
       );
     }
 
+    if (type === "tool-getRecentActivity") {
+      const { toolCallId, state } = part;
+
+      let outputNode: ReactNode = null;
+      if (state === "output-available") {
+        const output = part.output as {
+          github?: { title?: string }[];
+          blog?: { title?: string }[];
+        };
+        const ghCount = output.github?.length ?? 0;
+        const blogCount = output.blog?.length ?? 0;
+        outputNode = (
+          <div className="text-muted-foreground text-xs">
+            {ghCount === 0 && blogCount === 0
+              ? "No recent activity available."
+              : `${ghCount} GitHub event${ghCount === 1 ? "" : "s"}, ${blogCount} blog post${blogCount === 1 ? "" : "s"}.`}
+          </div>
+        );
+      }
+
+      return (
+        <Tool className="w-[min(100%,450px)]" key={toolCallId}>
+          <ToolHeader state={state} type="tool-getRecentActivity" />
+          <ToolContent>
+            {outputNode && (
+              <ToolOutput errorText={undefined} output={outputNode} />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
     if (type === "tool-searchCareerHistory") {
       const { toolCallId, state } = part;
 
