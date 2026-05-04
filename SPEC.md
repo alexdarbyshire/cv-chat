@@ -321,6 +321,13 @@ CV_CHAT_MODEL=anthropic/claude-sonnet-4-6  # default
 ## 7. Roadmap (rough)
 
 - **Phase 1 — scaffold**: bootstrap template, theming (tokens + fonts + dark mode), persona module. Deploy to Vercel as a placeholder.
+- **Phase 1.5 — agentic harness**: tighten the feedback loop *before* deeper feature work, so worker agents catch their own mistakes instead of silently shipping them.
+  - **Typecheck script**: `tsc --noEmit` exposed as `pnpm typecheck`. `next build` does it implicitly but is too slow to run mid-task.
+  - **Husky (v9+) pre-commit**: runs Biome (via `ultracite`) on the staged subset, then `pnpm typecheck`, then `pnpm knip`. We don't commit dead code; if a partial state genuinely needs to land, the user explicitly authorizes `--no-verify`. Hook installs via `prepare` script so contributors / agents pick it up automatically after `pnpm install`.
+  - **Knip**: dead-code, dead-export, and unused-dep detection. Wired into pre-commit (above) and CI. Config tuned to tolerate `app/` route conventions (Next.js entrypoints look unused to Knip without `entry` hints).
+  - **Vitest** for `lib/` units (rag chunkers, auth helpers, persona loader, rate-limit). One config, jsdom env for anything touching React, node env otherwise. Wired into `pnpm test:unit` (and `pnpm test` keeps Playwright).
+  - **Auth test coverage** specifically: guest-session creation, secure-cookie naming under HTTPS-proxy headers (the bug we just fixed in `proxy.ts` — needs a Vitest regression test), Google OAuth callback path, sign-out cookie clear. Mix of Vitest (cookie-name logic, token validation) and Playwright (full guest-flow happy path, sign-in redirect).
+  - **CI**: single GH Actions workflow runs `typecheck → ultracite check → knip → vitest → playwright` on PR. Fail fast on the cheap checks.
 - **Phase 2 — RAG**: pgvector schema + drizzle, ingestion script, retrieval tool, eval set.
 - **Phase 3 — auth + limits**: Google provider, guest session, Upstash rate-limit, history persistence.
 - **Phase 4 — tailored resume PDF (the differentiator)**: Zod `ResumeSchema`, AI SDK `generateObject`, typst.ts render pipeline, default `templates/resume.typ`, Blob cache, static fallback, `generate_tailored_resume` tool wired into the agent.
