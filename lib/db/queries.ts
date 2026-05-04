@@ -47,13 +47,72 @@ export async function getUser(email: string): Promise<User[]> {
   }
 }
 
-export async function createUser(email: string, password: string) {
-  const hashedPassword = generateHashedPassword(password);
-
+/**
+ * Look up or create a user record for a Google sign-in. Password is null —
+ * the user authenticates via OAuth, not a hashed password. Used by the
+ * Google provider's `profile()` callback in app/(auth)/auth.ts so the
+ * downstream JWT/session sees a stable User.id from our DB.
+ */
+export async function getOrCreateGoogleUser(args: {
+  email: string;
+  name?: string | null;
+  image?: string | null;
+}): Promise<{ id: string; email: string; created: boolean }> {
+  const existing = await getUser(args.email);
+  if (existing[0]) {
+    return {
+      id: existing[0].id,
+      email: existing[0].email,
+      created: false,
+    };
+  }
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    const [created] = await db
+      .insert(user)
+      .values({
+        email: args.email,
+        name: args.name ?? null,
+        image: args.image ?? null,
+        emailVerified: true,
+      })
+      .returning({ id: user.id, email: user.email });
+    return { id: created.id, email: created.email, created: true };
   } catch (_error) {
-    throw new ChatbotError("bad_request:database", "Failed to create user");
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to create Google user"
+    );
+  }
+}
+
+/**
+ * Account linking (SPEC §3.2): after a guest signs in with Google for the
+ * first time, reassign their chat history (and votes/streams hanging off
+ * those chats by FK) from the guest user id to the Google user id.
+ *
+ * One-shot, idempotent — calling it again with no remaining guest rows is
+ * a no-op. Returns the number of chats moved so the caller can log the
+ * migration.
+ */
+export async function migrateGuestChatsToUser(args: {
+  fromGuestUserId: string;
+  toUserId: string;
+}): Promise<{ chatsMoved: number }> {
+  if (args.fromGuestUserId === args.toUserId) {
+    return { chatsMoved: 0 };
+  }
+  try {
+    const moved = await db
+      .update(chat)
+      .set({ userId: args.toUserId })
+      .where(eq(chat.userId, args.fromGuestUserId))
+      .returning({ id: chat.id });
+    return { chatsMoved: moved.length };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to migrate guest chats"
+    );
   }
 }
 

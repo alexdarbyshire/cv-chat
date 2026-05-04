@@ -164,7 +164,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       if (error.message?.includes("AI Gateway requires a valid credit card")) {
         setShowCreditCardAlert(true);
       } else if (error instanceof ChatbotError) {
-        toast({ type: "error", description: error.message });
+        toast({
+          type: "error",
+          description: error.message,
+          cta: error.cta,
+        });
       } else {
         toast({
           type: "error",

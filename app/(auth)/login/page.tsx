@@ -1,66 +1,52 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useActionState, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useTransition } from "react";
+import { Button } from "@/components/ui/button";
 
-import { AuthForm } from "@/components/chat/auth-form";
-import { SubmitButton } from "@/components/chat/submit-button";
-import { toast } from "@/components/chat/toast";
-import { type LoginActionState, login } from "../actions";
-
+/**
+ * Sign-in page (SPEC §3.2). Visitors only land here from the rate-limit
+ * CTA — there's no "Sign in" link in the regular chrome. Single Google
+ * button, no email/password form. After OAuth, the JWT callback in
+ * app/(auth)/auth.ts migrates any existing guest chats to the new
+ * Google user id automatically.
+ */
 export default function Page() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [isSuccessful, setIsSuccessful] = useState(false);
-
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    { status: "idle" }
-  );
-
-  const { update: updateSession } = useSession();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
-  useEffect(() => {
-    if (state.status === "failed") {
-      toast({ type: "error", description: "Invalid credentials!" });
-    } else if (state.status === "invalid_data") {
-      toast({
-        type: "error",
-        description: "Failed validating your submission!",
-      });
-    } else if (state.status === "success") {
-      setIsSuccessful(true);
-      updateSession();
-      router.refresh();
-    }
-  }, [state.status]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    formAction(formData);
-  };
+  const searchParams = useSearchParams();
+  const callbackUrl = (() => {
+    const raw = searchParams?.get("callbackUrl") ?? "/";
+    return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  })();
+  const [pending, startTransition] = useTransition();
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-      <p className="text-sm text-muted-foreground">
-        Sign in to your account to continue
+      <h1 className="font-semibold text-2xl tracking-tight">
+        Continue with Google
+      </h1>
+      <p className="text-muted-foreground text-sm">
+        We use your Google account email to lift the anonymous message limit. We
+        never request more than email and profile scopes.
       </p>
-      <AuthForm action={handleSubmit} defaultEmail={email}>
-        <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
-        <p className="text-center text-[13px] text-muted-foreground">
-          {"No account? "}
-          <Link
-            className="text-foreground underline-offset-4 hover:underline"
-            href="/register"
-          >
-            Sign up
-          </Link>
+      <div className="flex flex-col gap-3">
+        <Button
+          className="w-full"
+          data-testid="continue-with-google"
+          disabled={pending}
+          onClick={() =>
+            startTransition(() => {
+              signIn("google", { callbackUrl });
+            })
+          }
+          size="lg"
+        >
+          {pending ? "Redirecting…" : "Continue with Google"}
+        </Button>
+        <p className="text-center text-[12px] text-muted-foreground/80">
+          You can keep using the chat as a guest if you'd rather not sign in.
         </p>
-      </AuthForm>
+      </div>
     </>
   );
 }
