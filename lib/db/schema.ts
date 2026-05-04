@@ -163,6 +163,7 @@ export const embedding = pgTable(
       .$type<EmbeddingMetadata>()
       .notNull()
       .default({}),
+    public: boolean("public").notNull().default(true),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
   },
   (table) => ({
@@ -171,6 +172,7 @@ export const embedding = pgTable(
       table.chunkIndex
     ),
     contentHashIdx: index("Embedding_contentHash_idx").on(table.contentHash),
+    publicIdx: index("Embedding_public_idx").on(table.public),
     embeddingHnswIdx: index("Embedding_embedding_hnsw_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops")

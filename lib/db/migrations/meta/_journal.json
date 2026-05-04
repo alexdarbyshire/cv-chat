@@ -15,6 +15,13 @@
       "when": 1714780800000,
       "tag": "0001_embedding",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746345600000,
+      "tag": "0002_embedding_public",
+      "breakpoints": true
     }
   ]
 }

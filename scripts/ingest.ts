@@ -1,19 +1,24 @@
 /**
- * Ingestion CLI — reads `$CORPUS_PATH`, walks for markdown / text / pdf,
- * chunks → embeds → upserts into pgvector. Phase 2.
+ * Ingestion CLI — reads `$CORPUS_PATH`, walks for markdown / text,
+ * chunks → redacts PII → embeds → upserts into pgvector.
  *
- * Skeleton only for now; the real pipeline lands when `lib/rag/` is built.
+ * Pipeline lives in `lib/rag/ingest.ts`. This file is just argument parsing
+ * and reporting.
  */
 
 import { stat } from "node:fs/promises";
+import { config as loadEnv } from "dotenv";
+import { corpusConfig } from "@/corpus.config";
+import { formatReport, runIngest } from "@/lib/rag/ingest";
+
+loadEnv({ path: ".env.local" });
 
 async function main() {
   const corpusPath = process.env.CORPUS_PATH;
 
   if (!corpusPath) {
     console.error(
-      "CORPUS_PATH is not set. Point it at a local path or git+ssh URL " +
-        "to your private career corpus, then re-run `pnpm ingest`."
+      "CORPUS_PATH is not set. Point it at a local path (e.g. ~/git/career) and re-run `pnpm ingest`."
     );
     process.exit(1);
   }
@@ -32,10 +37,13 @@ async function main() {
   }
 
   console.log(`[ingest] CORPUS_PATH=${corpusPath}`);
-  console.log(
-    "[ingest] Pipeline lands in Phase 2 (chunk → embed → upsert). " +
-      "See SPEC.md §3.7."
-  );
+
+  const report = await runIngest({
+    corpusPath,
+    config: corpusConfig,
+  });
+
+  console.log(formatReport(report));
 }
 
 main().catch((err) => {
