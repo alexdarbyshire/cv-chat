@@ -212,20 +212,42 @@ generate_tailored_resume(role_focus, emphasis[])  ← LLM-callable tool
 **Schema with hard limits** — the renderer can never overflow if the input is bounded:
 
 ```ts
+const Provenance = z.object({
+  sourcePath: z.string(),
+  headingPath: z.string(),
+});
+
+const ClaimWithProvenance = z.object({
+  text: z.string().max(140),
+  provenance: Provenance,
+});
+
 const ResumeSchema = z.object({
   headline: z.string().max(80),
   summary: z.string().max(280),
-  highlights: z.array(z.string().max(140)).max(4),
+  highlights: z.array(ClaimWithProvenance).max(4),
   roles: z.array(z.object({
     title: z.string().max(60),
     company: z.string().max(40),
     period: z.string().max(20),
-    bullets: z.array(z.string().max(140)).max(4),
+    bullets: z.array(ClaimWithProvenance).max(4),
   })).max(4),
   skills: z.array(z.string().max(24)).max(20),
   socials: z.object({ blog: z.string().url().optional(), github: z.string().url().optional(), linkedin: z.string().url().optional() }),
 });
 ```
+
+**Truth methodology — schema-attached provenance.** Every `highlight` and every `roles[].bullet` carries a `provenance: { sourcePath, headingPath }` reference to the chunk it was drawn from. The LLM populates this as part of structured generation; it can't author a claim without naming a source. Server-side validator after generation:
+
+1. Collect the set of `(sourcePath, headingPath)` pairs from the chunks retrieved for this generation.
+2. For each claim, the bullet's `provenance` must match a pair in that set.
+3. On mismatch — either reject (strict) and retry, or strip the offending claim and re-render (lenient). Default strict-with-one-retry; lenient is a fork knob.
+
+The `provenance` field is **internal only** — it never appears in the rendered PDF. It exists for verification.
+
+This catches the canonical drift case: corpus chunk has `headingPath: "Roles > … > AI MVP1"` and bullet text "Reduced AI MVP1 Azure costs by 60%". If the LLM paraphrases the bullet to "Reduced Azure AI platform costs by 60%" while still citing the MVP1 chunk, the validator can't catch the prose-level scope drift directly — but it CAN catch invented sources (claims citing chunks that weren't retrieved). Combined with the eval set below, the two together address both failure modes.
+
+**Truth methodology — eval set.** `tests/resume/groundedness.fixtures.ts` ships ~10 representative `(roleFocus, emphasis)` tuples with assertions about which chunks each tuple's resume *should* draw from (allowed `headingPath` patterns) and what scope claims should respect (e.g. claims sourced from an "MVP1" chunk must not generalise to "Azure platform" framing). `pnpm eval:resume` runs the tool against these fixtures, prints pass/fail per fixture, and writes a markdown report. Run on every PR touching resume code, retrieval, or persona prompts. Failure isn't a CI fail (the heuristics are imperfect), but the diff in the report becomes review evidence.
 
 **Why typst, not puppeteer or `@react-pdf/renderer`:**
 - typst handles page breaks and overflow gracefully; HTML/CSS doesn't (and `print` CSS is a regret factory).
@@ -336,6 +358,7 @@ CV_CHAT_SHOW_MODEL_PICKER=0  # 1 to expose the model picker in the UI (default h
 | Tailored PDF layout breakage | Schema-bounded content (Zod `.max()` per field) + typst's overflow-handling primitives + content-hash cached output + static-PDF fallback on render error |
 | Tailored PDF cost spikes | Sub-tier limits (guest=1/session, signed-in=5/day) on top of chat limits; cache hits free |
 | Resume facts diverge from chat answers | Both share the same retrieval pipeline (pgvector); resume tool re-uses `search_career_history` results so the bot can't claim things in the resume it can't substantiate in chat |
+| Resume claim scope drift (paraphrase widens scope beyond source) | Schema-attached provenance per claim (§3.8); server-side validator rejects claims citing chunks that weren't retrieved; `pnpm eval:resume` over a fixture set of (roleFocus, emphasis) tuples flags scope-mismatch on review |
 
 ## 7. Roadmap (rough)
 
