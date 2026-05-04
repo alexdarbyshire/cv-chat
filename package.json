@@ -9,6 +9,8 @@
     "start": "next start",
     "check": "ultracite check",
     "fix": "ultracite fix",
+    "typecheck": "tsc --noEmit",
+    "knip": "knip",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "npx tsx lib/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
@@ -16,10 +18,12 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
-    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^3.0.3",
     "@ai-sdk/react": "3.0.118",
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/state": "^6.5.0",
@@ -98,11 +102,20 @@
     "@types/react-dom": "^18",
     "babel-plugin-react-compiler": "^1.0.0",
     "drizzle-kit": "^0.25.0",
+    "husky": "^9.1.7",
+    "knip": "^6.11.0",
     "postcss": "^8",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
-    "ultracite": "^7.0.11"
+    "ultracite": "^7.0.11",
+    "vitest": "^4.1.5"
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@10.32.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
 }

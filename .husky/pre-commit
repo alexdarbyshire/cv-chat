@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+# Pre-commit gates. Skip with `git commit --no-verify` only when knowingly
+# committing in-progress work (e.g. dead code that lands in the next commit).
+# See CLAUDE.md "Quality gates" for the policy.
+
+echo "→ ultracite check (biome lint + format)"
+pnpm exec ultracite check || exit 1
+
+echo "→ typecheck (tsc --noEmit)"
+pnpm exec tsc --noEmit || exit 1
+
+echo "→ knip (dead code, dead exports, unused deps)"
+pnpm exec knip || exit 1

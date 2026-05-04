@@ -25,7 +25,9 @@ async function main() {
       process.exit(1);
     }
   } catch (err) {
-    console.error(`Cannot read CORPUS_PATH=${corpusPath}: ${(err as Error).message}`);
+    console.error(
+      `Cannot read CORPUS_PATH=${corpusPath}: ${(err as Error).message}`
+    );
     process.exit(1);
   }
 

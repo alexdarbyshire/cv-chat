@@ -3,8 +3,7 @@ import type { NextConfig } from "next";
 
 const basePath = process.env.IS_DEMO === "1" ? "/demo" : "";
 
-const allowedDevOrigins = process.env.DEV_ALLOWED_ORIGINS
-  ?.split(",")
+const allowedDevOrigins = process.env.DEV_ALLOWED_ORIGINS?.split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 

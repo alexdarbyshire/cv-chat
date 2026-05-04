@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "components/ui/**",
+    "components/ai-elements/**",
+    "components/chat/artifact-messages.tsx",
+    "components/chat/icons.tsx",
+    "components/chat/sidebar-toggle.tsx",
+    "components/chat/sign-out-form.tsx",
+    "components/chat/document.tsx",
+    "lib/editor/**",
+    "lib/resume/schema.ts"
+  ],
+  "ignoreDependencies": [
+    "@biomejs/biome",
+    "postcss-load-config",
+    "@types/d3-scale",
+    "@types/pdf-parse",
+    "@vercel/analytics",
+    "use-stick-to-bottom"
+  ],
+  "ignoreExportsUsedInFile": true
+}
