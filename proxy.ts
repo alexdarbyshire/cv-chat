@@ -6,6 +6,13 @@ import { guestRegex } from "./lib/constants";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (
+    process.env.NODE_ENV === "development" &&
+    pathname.startsWith("/tidewave")
+  ) {
+    return NextResponse.rewrite(new URL("/api/tidewave", request.url));
+  }
+
   if (pathname.startsWith("/ping")) {
     return new Response("pong", { status: 200 });
   }
