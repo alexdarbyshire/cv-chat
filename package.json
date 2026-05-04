@@ -23,6 +23,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "eval:warmth": "tsx scripts/warmth-eval.ts",
+    "eval:resume": "tsx scripts/resume-eval.ts",
     "gates": "pnpm typecheck && pnpm check && pnpm knip && pnpm test:unit",
     "prepare": "husky"
   },

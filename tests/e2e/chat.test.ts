@@ -28,8 +28,12 @@ test.describe("Chat Page", () => {
     await page.goto("/");
 
     // Type and send a message
-    await page.getByTestId("multimodal-input").fill("Hello");
-    await page.getByTestId("send-button").click();
+    const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
+    await input.fill("Hello");
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Stop button should appear during generation
     const stopButton = page.getByTestId("stop-button");
@@ -45,8 +49,11 @@ test.describe("Chat Input Features", () => {
   test("input clears after sending", async ({ page }) => {
     await page.goto("/");
     const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test message");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Input should clear after sending
     await expect(input).toHaveValue("");

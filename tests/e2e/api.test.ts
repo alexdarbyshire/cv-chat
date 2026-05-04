@@ -14,7 +14,9 @@ test.describe("Chat API Integration", () => {
     // but stays disabled until then. See playwright.config.ts comment.
     await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Hello");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Wait for assistant response to appear
     const assistantMessage = page.locator("[data-role='assistant']").first();
@@ -32,7 +34,9 @@ test.describe("Chat API Integration", () => {
     const input = page.getByTestId("multimodal-input");
     await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test redirect");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // URL should change to /chat/:id format
     await expect(page).toHaveURL(CHAT_URL_REGEX, { timeout: 10_000 });
@@ -45,7 +49,9 @@ test.describe("Chat API Integration", () => {
     const input = page.getByTestId("multimodal-input");
     await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test message");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Input should be cleared
     await expect(input).toHaveValue("");
@@ -57,7 +63,9 @@ test.describe("Chat API Integration", () => {
     const input = page.getByTestId("multimodal-input");
     await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Stop button should appear during generation
     const stopButton = page.getByTestId("stop-button");
@@ -80,7 +88,9 @@ test.describe("Chat Error Handling", () => {
     const input = page.getByTestId("multimodal-input");
     await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test error");
-    await page.getByTestId("send-button").click();
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
 
     // Should show error toast or message
     await expect(page.getByText(ERROR_TEXT_REGEX).first()).toBeVisible({

@@ -1,7 +1,7 @@
 import type { UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ResumeJSON } from "@/lib/resume/schema";
+import type { ResumeContent, ResumeJSON } from "@/lib/resume/schema";
 import type { ChatMessage } from "@/lib/types";
 
 vi.mock("@/lib/resume/generate", () => ({
@@ -64,6 +64,32 @@ const sampleJson: ResumeJSON = {
   socials: {},
 };
 
+const sampleContent: ResumeContent = {
+  headline: sampleJson.headline,
+  summary: sampleJson.summary,
+  highlights: [
+    {
+      text: "a",
+      provenance: { sourcePath: "x.md", headingPath: "Career > Lead" },
+    },
+  ],
+  roles: [
+    {
+      title: "Sr",
+      company: "Acme",
+      period: "2022–now",
+      bullets: [
+        {
+          text: "b",
+          provenance: { sourcePath: "x.md", headingPath: "Career > Lead" },
+        },
+      ],
+    },
+  ],
+  projects: [],
+  skills: ["Kubernetes"],
+};
+
 const callExecute = (
   session: Session,
   input: { roleFocus: string; emphasis: string[] },
@@ -105,9 +131,11 @@ describe("generateTailoredResumeTool", () => {
   it("pins the rendered PDF to the artifact pane on the happy path", async () => {
     vi.mocked(generateTailoredResume).mockResolvedValue({
       json: sampleJson,
+      content: sampleContent,
       brief: { roleFocus: "Platform", emphasis: ["k8s"] },
       sources: [],
       attempts: 1,
+      droppedClaims: [],
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "https://blob.example.test/resume.pdf",
@@ -147,9 +175,11 @@ describe("generateTailoredResumeTool", () => {
     process.env.OWNER_EMAIL = "owner@example.test";
     vi.mocked(generateTailoredResume).mockResolvedValue({
       json: sampleJson,
+      content: sampleContent,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
       attempts: 1,
+      droppedClaims: [],
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "https://blob.example.test/r.pdf",
@@ -167,9 +197,11 @@ describe("generateTailoredResumeTool", () => {
     process.env.OWNER_EMAIL = "owner@example.test";
     vi.mocked(generateTailoredResume).mockResolvedValue({
       json: sampleJson,
+      content: sampleContent,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
       attempts: 1,
+      droppedClaims: [],
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "u",
@@ -212,8 +244,10 @@ describe("generateTailoredResumeTool", () => {
   it("falls back to STATIC_RESUME_URL when render throws", async () => {
     vi.mocked(generateTailoredResume).mockResolvedValue({
       json: sampleJson,
+      content: sampleContent,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
+      droppedClaims: [],
       attempts: 1,
     });
     vi.mocked(getOrRenderResume).mockRejectedValue(new Error("typst exploded"));

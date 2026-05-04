@@ -21,6 +21,7 @@ const {
   MAX_RETRIES,
   RESUME_RETRIEVAL_K,
   ResumeBoundsError,
+  ResumeProvenanceError,
 } = await import("./generate");
 const { searchCareerHistory } = await import("@/lib/rag/search");
 
@@ -41,16 +42,35 @@ const fakeHits: SearchHit[] = [
   },
 ];
 
+const PORTFOLIO_PROV = {
+  sourcePath: "Project_Portfolio.md",
+  headingPath: "Career > Platform > Lead",
+};
+const BLOG_PROV = {
+  sourcePath: "all-blog-posts.md",
+  headingPath: "Career > Build",
+};
+
 const cleanContent: RawResumeContent = {
   headline: "Platform engineer · cloud-native infra",
   summary: "Ten+ years across application and platform.",
-  highlights: ["Built a 50-app Kubernetes platform"],
+  highlights: [
+    {
+      text: "Built a 50-app Kubernetes platform",
+      provenance: PORTFOLIO_PROV,
+    },
+  ],
   roles: [
     {
       title: "Senior Platform Engineer",
       company: "Acme",
       period: "2022–present",
-      bullets: ["Owned the production cluster"],
+      bullets: [
+        {
+          text: "Owned the production cluster",
+          provenance: BLOG_PROV,
+        },
+      ],
     },
   ],
   projects: [{ name: "Pipeline rework", summary: "Cut deploy time 10x" }],
@@ -180,5 +200,89 @@ describe("generateTailoredResume", () => {
     expect(userPrompt).toContain("Kubernetes");
     expect(userPrompt).toContain("Observability");
     expect(userPrompt).toContain("Project_Portfolio.md");
+    expect(userPrompt).toContain("sourcePath:");
+    expect(userPrompt).toContain("headingPath:");
+  });
+
+  it("lenient mode: drops invented claims and keeps the rest", async () => {
+    const withInvented: RawResumeContent = {
+      ...cleanContent,
+      highlights: [
+        cleanContent.highlights[0],
+        {
+          text: "Hallucinated achievement",
+          provenance: {
+            sourcePath: "fake.md",
+            headingPath: "Made > Up > Path",
+          },
+        },
+      ],
+    };
+    mockOutputs(withInvented);
+    const r = await generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
+      provenanceMode: "lenient",
+    });
+    expect(r.attempts).toBe(1);
+    // Resume only got the valid highlight; the hallucinated one was stripped.
+    expect(r.json.highlights).toEqual([cleanContent.highlights[0].text]);
+    expect(r.droppedClaims).toHaveLength(1);
+    expect(r.droppedClaims[0]).toMatchObject({
+      location: "highlights[1]",
+      text: "Hallucinated achievement",
+    });
+    expect(generateText).toHaveBeenCalledTimes(1);
+  });
+
+  it("strict mode: feeds invention back to the model and retries", async () => {
+    const withInvented: RawResumeContent = {
+      ...cleanContent,
+      highlights: [
+        {
+          text: "Hallucinated achievement",
+          provenance: {
+            sourcePath: "fake.md",
+            headingPath: "Made > Up > Path",
+          },
+        },
+      ],
+    };
+    mockOutputs(withInvented, cleanContent);
+    const r = await generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
+      provenanceMode: "strict",
+    });
+    expect(r.attempts).toBe(2);
+    expect(generateText).toHaveBeenCalledTimes(2);
+    const secondCall = vi.mocked(generateText).mock.calls[1][0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    const followup = secondCall.messages.at(-1);
+    expect(followup?.role).toBe("user");
+    expect(followup?.content).toMatch(/cannot invent provenance/i);
+    expect(followup?.content).toMatch(/fake\.md/);
+    expect(r.droppedClaims).toEqual([]);
+  });
+
+  it("strict mode: throws ResumeProvenanceError after exhausting retries", async () => {
+    const withInvented: RawResumeContent = {
+      ...cleanContent,
+      highlights: [
+        {
+          text: "Bogus",
+          provenance: {
+            sourcePath: "fake.md",
+            headingPath: "x",
+          },
+        },
+      ],
+    };
+    const all = Array.from({ length: MAX_RETRIES + 1 }, () => withInvented);
+    mockOutputs(...all);
+    const promise = generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
+      provenanceMode: "strict",
+    });
+    await expect(promise).rejects.toBeInstanceOf(ResumeProvenanceError);
   });
 });
