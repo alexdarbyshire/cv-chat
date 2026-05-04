@@ -4,6 +4,8 @@ A self-hosted, RAG-backed chatbot that answers questions about your career.
 
 Forkable: drop in your own corpus (markdown, PDFs) and the bot speaks as you. Built on the [Vercel Chat SDK](https://chat-sdk.dev) — Next.js, AI SDK, Auth.js, Neon Postgres + pgvector, shadcn/ui.
 
+**Live**: <https://cv.alexdarbyshire.com>
+
 > **Status**: design / scaffolding. See [SPEC.md](./SPEC.md).
 
 ## Why
@@ -21,7 +23,7 @@ It's a more honest interface to a body of work than a one-page summary can be.
 
 ## How this was built
 
-A lot of this repo wasn't typed by me. It was written by AI workers running on a small home setup, and the setup itself is worth describing — partly because it's the differentiator between this and the original (one late-night Claude session in 2025), and partly so anyone forking can see the moving parts if they want to follow the same pattern.
+A lot of this repo wasn't typed by me. It was written by AI workers running on a small home setup, and the setup itself is worth describing — partly because it's the differentiator between this and the original, and partly so anyone forking can see the moving parts if they want to follow the same pattern.
 
 ```mermaid
 flowchart LR
