@@ -8,8 +8,7 @@
     "components/chat/sidebar-toggle.tsx",
     "components/chat/sign-out-form.tsx",
     "components/chat/document.tsx",
-    "lib/editor/**",
-    "lib/resume/schema.ts"
+    "lib/editor/**"
   ],
   "ignoreDependencies": [
     "@biomejs/biome",
