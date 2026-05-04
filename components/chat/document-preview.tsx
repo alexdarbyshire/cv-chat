@@ -99,9 +99,12 @@ export function DocumentPreview({
     );
   }
 
+  // Synthesize a transient Document for the streaming-preview phase.
+  // 'pdf' kind is never streamed (the PDF artifact pins a finished URL),
+  // so it has no document-preview representation; fall through to null.
   const document: Document | null = previewDocument
     ? previewDocument
-    : artifact.status === "streaming"
+    : artifact.status === "streaming" && artifact.kind !== "pdf"
       ? {
           title: artifact.title,
           kind: artifact.kind,

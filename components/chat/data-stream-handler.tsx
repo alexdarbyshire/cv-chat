@@ -22,14 +22,26 @@ export function DataStreamHandler() {
     const newDeltas = dataStream.slice();
     setDataStream([]);
 
+    // Track the in-flight kind across this batch. setArtifact below schedules
+    // a state update that won't be visible until the next render, so the
+    // closure's `artifact.kind` is stale for any delta processed after a
+    // data-kind switch. Without this local tracking, a data-pdfArtifact
+    // dispatched right after data-kind:'pdf' would route through whatever
+    // artifact definition matched the *previous* kind (often the default
+    // 'text'), and the PDF pane would never open.
+    let currentKind = artifact.kind;
+
     for (const delta of newDeltas) {
       if (delta.type === "data-chat-title") {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
         continue;
       }
+      if (delta.type === "data-kind") {
+        currentKind = delta.data;
+      }
       const artifactDefinition = artifactDefinitions.find(
         (currentArtifactDefinition) =>
-          currentArtifactDefinition.kind === artifact.kind
+          currentArtifactDefinition.kind === currentKind
       );
 
       if (artifactDefinition?.onStreamPart) {

@@ -243,6 +243,7 @@ export async function POST(request: Request) {
             [SEARCH_CAREER_HISTORY_TOOL]: searchCareerHistoryTool({ session }),
             [GENERATE_TAILORED_RESUME_TOOL]: generateTailoredResumeTool({
               session,
+              dataStream,
             }),
           },
           experimental_telemetry: {
