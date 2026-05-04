@@ -61,7 +61,7 @@ export const corpusConfig: CorpusConfig = {
     {
       path: "linkedin-profile-copy-paste.txt",
       visibility: "public",
-      publicUrl: "https://www.linkedin.com/in/alexdarbyshire/",
+      publicUrl: "https://www.linkedin.com/in/alex-darbyshire-au/",
       note: "Copy-paste of public LinkedIn profile (current role, skills, experience).",
     },
     // --- Explicitly excluded (do not delete; presence here makes the call deliberate) ---
