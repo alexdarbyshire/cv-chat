@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type ClaimWithProvenance,
   composeResumeJSON,
   type RawResumeContent,
   type ResumeContent,
@@ -7,13 +8,35 @@ import {
   validateResumeBounds,
 } from "./schema";
 
+const PORTFOLIO_PROV = {
+  sourcePath: "Project_Portfolio.md",
+  headingPath: "Career > Platform > Lead",
+};
+const BLOG_PROV = {
+  sourcePath: "all-blog-posts.md",
+  headingPath: "Career > Build",
+};
+
+const claim = (
+  text: string,
+  provenance = PORTFOLIO_PROV
+): ClaimWithProvenance => ({
+  text,
+  provenance,
+});
+
 const validContent: ResumeContent = {
   headline: "Platform engineer · cloud-native infra",
   summary:
     "Ten+ years across application and infra. Comfortable from kernel-up to UI; the bit I keep coming back to is making teams faster by removing toil.",
   highlights: [
-    "Delivered Kubernetes platform serving 50+ apps across multiple regions",
-    "Cut deployment time from 40m to 4m by re-architecting the build pipeline",
+    claim(
+      "Delivered Kubernetes platform serving 50+ apps across multiple regions"
+    ),
+    claim(
+      "Cut deployment time from 40m to 4m by re-architecting the build pipeline",
+      BLOG_PROV
+    ),
   ],
   roles: [
     {
@@ -21,8 +44,13 @@ const validContent: ResumeContent = {
       company: "Acme",
       period: "2022–present",
       bullets: [
-        "Owned production Kubernetes cluster and incident response rotation",
-        "Migrated legacy services off VM-based deploy onto IaC-managed platform",
+        claim(
+          "Owned production Kubernetes cluster and incident response rotation"
+        ),
+        claim(
+          "Migrated legacy services off VM-based deploy onto IaC-managed platform",
+          BLOG_PROV
+        ),
       ],
     },
   ],
@@ -56,7 +84,7 @@ describe("ResumeContentSchema", () => {
   it("rejects more than 4 highlights (one-page constraint)", () => {
     const r = ResumeContentSchema.safeParse({
       ...validContent,
-      highlights: ["a", "b", "c", "d", "e"],
+      highlights: [claim("a"), claim("b"), claim("c"), claim("d"), claim("e")],
     });
     expect(r.success).toBe(false);
   });
@@ -67,8 +95,18 @@ describe("ResumeContentSchema", () => {
       roles: [
         {
           ...validContent.roles[0],
-          bullets: ["x".repeat(141)],
+          bullets: [claim("x".repeat(141))],
         },
+      ],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects a claim with empty provenance.headingPath", () => {
+    const r = ResumeContentSchema.safeParse({
+      ...validContent,
+      highlights: [
+        { text: "hi", provenance: { sourcePath: "x.md", headingPath: "" } },
       ],
     });
     expect(r.success).toBe(false);
@@ -100,7 +138,7 @@ describe("ResumeContentSchema", () => {
 });
 
 describe("composeResumeJSON", () => {
-  it("injects persona-driven name and socials onto the model output", () => {
+  it("flattens claims to strings and injects persona identity", () => {
     const json = composeResumeJSON(validContent, {
       name: "Alex Example",
       socials: {
@@ -114,6 +152,17 @@ describe("composeResumeJSON", () => {
     expect(json.socials.github).toBeUndefined();
     expect(json.headline).toBe(validContent.headline);
     expect(json.skills).toEqual(validContent.skills);
+    // Provenance must NOT leak into the renderer payload.
+    expect(json.highlights).toEqual([
+      validContent.highlights[0].text,
+      validContent.highlights[1].text,
+    ]);
+    expect(json.roles[0].bullets).toEqual([
+      validContent.roles[0].bullets[0].text,
+      validContent.roles[0].bullets[1].text,
+    ]);
+    // No `.provenance` anywhere in the rendered shape.
+    expect(JSON.stringify(json)).not.toContain("provenance");
   });
 });
 
@@ -133,28 +182,45 @@ describe("validateResumeBounds", () => {
       ...validRaw,
       headline: "x".repeat(120),
       summary: "y".repeat(400),
-      highlights: ["z".repeat(200), "ok highlight"],
+      highlights: [claim("z".repeat(200)), claim("ok highlight")],
     });
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.violations.some((v) => v.match(/headline is 120/))).toBe(true);
       expect(r.violations.some((v) => v.match(/summary is 400/))).toBe(true);
-      expect(r.violations.some((v) => v.match(/highlight\[0\] is 200/))).toBe(
-        true
-      );
+      expect(
+        r.violations.some((v) => v.match(/highlight\[0\]\.text is 200/))
+      ).toBe(true);
     }
   });
 
   it("flags too-many highlights and too-many skills", () => {
     const r = validateResumeBounds({
       ...validRaw,
-      highlights: ["a", "b", "c", "d", "e"],
+      highlights: [claim("a"), claim("b"), claim("c"), claim("d"), claim("e")],
       skills: Array.from({ length: 25 }, (_, i) => `s${i}`),
     });
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.violations.some((v) => v.match(/5 highlights/))).toBe(true);
       expect(r.violations.some((v) => v.match(/25 skills/))).toBe(true);
+    }
+  });
+
+  it("flags empty provenance fields on a claim", () => {
+    const r = validateResumeBounds({
+      ...validRaw,
+      highlights: [
+        { text: "hi", provenance: { sourcePath: "x.md", headingPath: " " } },
+      ],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(
+        r.violations.some((v) =>
+          v.match(/highlight\[0\]\.provenance\.headingPath is empty/)
+        )
+      ).toBe(true);
     }
   });
 

@@ -13,23 +13,42 @@ import { z } from "zod";
  * the model schema avoids hallucinated URLs and keeps a fork's persona the
  * single source of truth for identity.
  *
+ * Per SPEC §3.8 truth methodology: every `highlight` and every `roles[].bullet`
+ * carries a `provenance` reference back to the chunk it was drawn from. The
+ * validator (lib/resume/provenance.ts) checks each claim's provenance against
+ * the chunks that were retrieved for the generation; invented sources are
+ * rejected. Provenance is internal — it's stripped before the renderer ever
+ * sees the JSON, so it doesn't appear in the rendered PDF.
+ *
  * `projects[].url` is `z.string().optional()` — NOT `z.string().url()`. The
  * Zod URL refinement translates to JSON Schema `format: "uri"`, which OpenAI's
  * structured-output endpoint rejects ("'uri' is not a valid format"). The
  * bounds validator below parses URLs separately and drops malformed ones,
  * which keeps OpenAI models viable as `CV_CHAT_RESUME_MODEL` overrides.
  */
+export const ProvenanceSchema = z.object({
+  sourcePath: z.string().min(1),
+  headingPath: z.string().min(1),
+});
+
+export const ClaimWithProvenanceSchema = z.object({
+  text: z.string().min(1).max(140),
+  provenance: ProvenanceSchema,
+});
+
+export type ClaimWithProvenance = z.infer<typeof ClaimWithProvenanceSchema>;
+
 export const ResumeContentSchema = z.object({
   headline: z.string().min(1).max(80),
   summary: z.string().min(1).max(280),
-  highlights: z.array(z.string().min(1).max(140)).min(1).max(4),
+  highlights: z.array(ClaimWithProvenanceSchema).min(1).max(4),
   roles: z
     .array(
       z.object({
         title: z.string().min(1).max(60),
         company: z.string().min(1).max(40),
         period: z.string().min(1).max(20),
-        bullets: z.array(z.string().min(1).max(140)).min(1).max(4),
+        bullets: z.array(ClaimWithProvenanceSchema).min(1).max(4),
       })
     )
     .min(1)
@@ -58,16 +77,24 @@ export type ResumeContent = z.infer<typeof ResumeContentSchema>;
  * Bounds are enforced post-hoc by `validateResumeBounds`, which produces
  * specific violations the pipeline can feed back to the model on retry.
  */
+const RawClaimSchema = z.object({
+  text: z.string(),
+  provenance: z.object({
+    sourcePath: z.string(),
+    headingPath: z.string(),
+  }),
+});
+
 export const RawResumeContentSchema = z.object({
   headline: z.string(),
   summary: z.string(),
-  highlights: z.array(z.string()),
+  highlights: z.array(RawClaimSchema),
   roles: z.array(
     z.object({
       title: z.string(),
       company: z.string(),
       period: z.string(),
-      bullets: z.array(z.string()),
+      bullets: z.array(RawClaimSchema),
     })
   ),
   projects: z.array(
@@ -88,19 +115,45 @@ export type ResumeSocials = {
   linkedin?: string;
 };
 
-export type ResumeJSON = ResumeContent & {
+/**
+ * Renderer-bound shape: claims flattened to plain strings, identity merged
+ * in. `ResumeJSON` is what typst sees — the typst template reads
+ * `data.highlights[i]` as a string, not as `{text, provenance}`.
+ */
+export type ResumeJSON = {
   name: string;
+  headline: string;
+  summary: string;
+  highlights: string[];
+  roles: {
+    title: string;
+    company: string;
+    period: string;
+    bullets: string[];
+  }[];
+  projects: { name: string; summary: string; url?: string }[];
+  skills: string[];
   socials: ResumeSocials;
 };
 
-/** Combine model-generated content with persona-driven identity for the renderer. */
+/** Combine validated content with persona-driven identity for the renderer. */
 export function composeResumeJSON(
   content: ResumeContent,
   identity: { name: string; socials: ResumeSocials }
 ): ResumeJSON {
   return {
-    ...content,
     name: identity.name,
+    headline: content.headline,
+    summary: content.summary,
+    highlights: content.highlights.map((c) => c.text),
+    roles: content.roles.map((r) => ({
+      title: r.title,
+      company: r.company,
+      period: r.period,
+      bullets: r.bullets.map((c) => c.text),
+    })),
+    projects: content.projects,
+    skills: content.skills,
     socials: identity.socials,
   };
 }
@@ -146,12 +199,30 @@ function tryHttpUrl(s: string | undefined): string | undefined {
   return;
 }
 
+function trimClaim(claim: {
+  text: string;
+  provenance: { sourcePath: string; headingPath: string };
+}): ClaimWithProvenance {
+  return {
+    text: claim.text.trim(),
+    provenance: {
+      sourcePath: claim.provenance.sourcePath.trim(),
+      headingPath: claim.provenance.headingPath.trim(),
+    },
+  };
+}
+
 /**
  * Check raw model output against the strict ResumeContent bounds. On success,
  * returns a ResumeContent (URLs cleaned: empty strings and non-http schemes
  * dropped silently — `url` is optional, so a missing URL isn't a violation).
  * On failure, returns a list of human-readable violations suitable for
  * feeding back to the model on a retry.
+ *
+ * Claims are validated as objects: `text` length and presence is checked,
+ * `provenance.sourcePath` and `provenance.headingPath` must be non-empty.
+ * Cross-checking provenance against actual retrieved chunks is a separate
+ * concern — see `validateResumeProvenance` in lib/resume/provenance.ts.
  */
 export function validateResumeBounds(
   raw: RawResumeContent
@@ -184,13 +255,19 @@ export function validateResumeBounds(
     );
   }
   raw.highlights.forEach((h, i) => {
-    const t = h.trim();
-    if (t.length === 0) {
-      violations.push(`highlight[${i}] is empty`);
-    } else if (t.length > BOUNDS.highlight) {
+    const text = h.text.trim();
+    if (text.length === 0) {
+      violations.push(`highlight[${i}].text is empty`);
+    } else if (text.length > BOUNDS.highlight) {
       violations.push(
-        `highlight[${i}] is ${t.length} chars (max ${BOUNDS.highlight})`
+        `highlight[${i}].text is ${text.length} chars (max ${BOUNDS.highlight})`
       );
+    }
+    if (h.provenance.headingPath.trim().length === 0) {
+      violations.push(`highlight[${i}].provenance.headingPath is empty`);
+    }
+    if (h.provenance.sourcePath.trim().length === 0) {
+      violations.push(`highlight[${i}].provenance.sourcePath is empty`);
     }
   });
 
@@ -223,12 +300,22 @@ export function validateResumeBounds(
       );
     }
     r.bullets.forEach((b, j) => {
-      const t = b.trim();
-      if (t.length === 0) {
-        violations.push(`roles[${i}].bullets[${j}] is empty`);
-      } else if (t.length > BOUNDS.bullet) {
+      const text = b.text.trim();
+      if (text.length === 0) {
+        violations.push(`roles[${i}].bullets[${j}].text is empty`);
+      } else if (text.length > BOUNDS.bullet) {
         violations.push(
-          `roles[${i}].bullets[${j}] is ${t.length} chars (max ${BOUNDS.bullet})`
+          `roles[${i}].bullets[${j}].text is ${text.length} chars (max ${BOUNDS.bullet})`
+        );
+      }
+      if (b.provenance.headingPath.trim().length === 0) {
+        violations.push(
+          `roles[${i}].bullets[${j}].provenance.headingPath is empty`
+        );
+      }
+      if (b.provenance.sourcePath.trim().length === 0) {
+        violations.push(
+          `roles[${i}].bullets[${j}].provenance.sourcePath is empty`
         );
       }
     });
@@ -279,12 +366,12 @@ export function validateResumeBounds(
   const content: ResumeContent = {
     headline,
     summary,
-    highlights: raw.highlights.map((h) => h.trim()),
+    highlights: raw.highlights.map(trimClaim),
     roles: raw.roles.map((r) => ({
       title: r.title.trim(),
       company: r.company.trim(),
       period: r.period.trim(),
-      bullets: r.bullets.map((b) => b.trim()),
+      bullets: r.bullets.map(trimClaim),
     })),
     projects: raw.projects.map((p) => {
       const url = tryHttpUrl(p.url);
