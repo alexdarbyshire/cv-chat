@@ -2,13 +2,18 @@ import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  index,
+  integer,
   json,
+  jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
+  vector,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("User", {
@@ -134,3 +139,43 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export type EmbeddingMetadata = {
+  title?: string;
+  publicUrl?: string;
+  tokens?: number;
+};
+
+export const EMBEDDING_DIMENSIONS = 1536;
+
+export const embedding = pgTable(
+  "Embedding",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    sourcePath: text("sourcePath").notNull(),
+    chunkIndex: integer("chunkIndex").notNull(),
+    content: text("content").notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    embedding: vector("embedding", {
+      dimensions: EMBEDDING_DIMENSIONS,
+    }).notNull(),
+    metadata: jsonb("metadata")
+      .$type<EmbeddingMetadata>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    sourceChunkIdx: uniqueIndex("Embedding_source_chunk_uidx").on(
+      table.sourcePath,
+      table.chunkIndex
+    ),
+    contentHashIdx: index("Embedding_contentHash_idx").on(table.contentHash),
+    embeddingHnswIdx: index("Embedding_embedding_hnsw_idx").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops")
+    ),
+  })
+);
+
+export type Embedding = InferSelectModel<typeof embedding>;
