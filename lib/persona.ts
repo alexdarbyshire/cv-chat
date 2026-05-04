@@ -15,6 +15,7 @@ export type Persona = {
   transferability: string;
   contactPolicy: string;
   buildNarrative: string;
+  greetingFooter: string;
   seedQuestions: readonly string[];
   socials: {
     blog?: string;
@@ -60,6 +61,9 @@ to prod via the Vercel CLI rather than waiting on the PR cycle. The repo at \
 https://github.com/alexdarbyshire/cv-chat is the canonical example output of \
 that pipeline — including this paragraph.`;
 
+const DEFAULT_GREETING_FOOTER =
+  "Built phone-first via the agentic worker stack documented in the README. Some questions land better than others; the tailored CV is the most polished thing here.";
+
 function envText(value: string | undefined): string | undefined {
   if (!value) {
     return;
@@ -82,6 +86,8 @@ export const persona: Persona = {
     envText(process.env.PERSONA_CONTACT_POLICY) ?? DEFAULT_CONTACT_POLICY,
   buildNarrative:
     envText(process.env.PERSONA_BUILD_NARRATIVE) ?? DEFAULT_BUILD_NARRATIVE,
+  greetingFooter:
+    envText(process.env.PERSONA_GREETING_FOOTER) ?? DEFAULT_GREETING_FOOTER,
   seedQuestions: DEFAULT_SEED_QUESTIONS,
   socials: {
     blog: envUrl(process.env.PERSONA_BLOG_URL),
