@@ -14,10 +14,10 @@ import {
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
+import type { DocumentKind } from "./schema";
 import {
   type Chat,
   chat,
@@ -325,7 +325,7 @@ export async function saveDocument({
 }: {
   id: string;
   title: string;
-  kind: ArtifactKind;
+  kind: DocumentKind;
   content: string;
   userId: string;
 }) {

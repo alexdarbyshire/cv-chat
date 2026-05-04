@@ -75,6 +75,15 @@ export const vote = pgTable(
 
 export type Vote = InferSelectModel<typeof vote>;
 
+/**
+ * Persistable artifact kinds — the subset of ArtifactKind whose contents we
+ * actually round-trip through Postgres. Display-only kinds (e.g. "pdf",
+ * which is just a Blob URL) are session-scoped and intentionally NOT in
+ * this enum, so saveDocument() refuses them at the type level.
+ */
+export const documentKinds = ["text", "code", "image", "sheet"] as const;
+export type DocumentKind = (typeof documentKinds)[number];
+
 export const document = pgTable(
   "Document",
   {
@@ -82,9 +91,7 @@ export const document = pgTable(
     createdAt: timestamp("createdAt").notNull(),
     title: text("title").notNull(),
     content: text("content"),
-    kind: varchar("text", { enum: ["text", "code", "image", "sheet"] })
-      .notNull()
-      .default("text"),
+    kind: varchar("text", { enum: documentKinds }).notNull().default("text"),
     userId: uuid("userId")
       .notNull()
       .references(() => user.id),

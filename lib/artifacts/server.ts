@@ -3,9 +3,8 @@ import type { Session } from "next-auth";
 import { codeDocumentHandler } from "@/artifacts/code/server";
 import { sheetDocumentHandler } from "@/artifacts/sheet/server";
 import { textDocumentHandler } from "@/artifacts/text/server";
-import type { ArtifactKind } from "@/components/chat/artifact";
 import { saveDocument } from "../db/queries";
-import type { Document } from "../db/schema";
+import type { Document, DocumentKind } from "../db/schema";
 import type { ChatMessage } from "../types";
 
 export type CreateDocumentCallbackProps = {
@@ -24,13 +23,13 @@ export type UpdateDocumentCallbackProps = {
   modelId: string;
 };
 
-export type DocumentHandler<T = ArtifactKind> = {
+export type DocumentHandler<T = DocumentKind> = {
   kind: T;
   onCreateDocument: (args: CreateDocumentCallbackProps) => Promise<void>;
   onUpdateDocument: (args: UpdateDocumentCallbackProps) => Promise<void>;
 };
 
-export function createDocumentHandler<T extends ArtifactKind>(config: {
+export function createDocumentHandler<T extends DocumentKind>(config: {
   kind: T;
   onCreateDocument: (params: CreateDocumentCallbackProps) => Promise<string>;
   onUpdateDocument: (params: UpdateDocumentCallbackProps) => Promise<string>;
