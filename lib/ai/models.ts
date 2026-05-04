@@ -1,4 +1,4 @@
-export const DEFAULT_CHAT_MODEL = "moonshotai/kimi-k2.5";
+export const DEFAULT_CHAT_MODEL = "anthropic/claude-sonnet-4.6";
 
 export const titleModel = {
   id: "mistral/mistral-small",
@@ -24,6 +24,20 @@ export type ChatModel = {
 };
 
 export const chatModels: ChatModel[] = [
+  {
+    id: "anthropic/claude-sonnet-4.6",
+    name: "Claude Sonnet 4.6",
+    provider: "anthropic",
+    description: "Anthropic flagship — strong tool use and reasoning",
+    gatewayOrder: ["anthropic", "bedrock"],
+  },
+  {
+    id: "anthropic/claude-haiku-4.5",
+    name: "Claude Haiku 4.5",
+    provider: "anthropic",
+    description: "Fast Anthropic model with tool use",
+    gatewayOrder: ["anthropic", "bedrock"],
+  },
   {
     id: "deepseek/deepseek-v3.2",
     name: "DeepSeek V3.2",
