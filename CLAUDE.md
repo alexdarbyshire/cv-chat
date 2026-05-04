@@ -80,6 +80,8 @@ Two MCP servers are wired in (see `.mcp.json`). Both require `pnpm dev` to be ru
   - `get_docs` — installed-version-correct docs for any dependency
 - **`next-devtools`** (stdio, Vercel's `next-devtools-mcp`) — Next 16-aware. **Call `init` once at the start of any Next-related task** to load the tool's own context. Then `nextjs_docs` for framework Q's, `nextjs_call` to talk to Next's built-in `/_next/mcp`. `browser_eval` (Playwright) works in this sandbox via Chromium baked into the image.
 
+**Startup ordering:** HTTP MCP servers (Tidewave) only register at Claude Code startup; if the dev server isn't responding then, those tools are unavailable for the whole session. The sandbox runs `scripts/dev-claude.sh` automatically (backgrounds `pnpm dev`, waits for `/ping`, then exec's claude). Outside the sandbox, run `pnpm dev` before `claude`.
+
 ## Things you must NOT do
 
 - Commit secrets, API keys, env values, or anything from the corpus.
