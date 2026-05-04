@@ -48,7 +48,16 @@ export const generateTailoredResumeTool = ({
           headline: json.headline,
           cached: cached.cached,
         };
-      } catch (_error) {
+      } catch (error) {
+        const err = error as Error & { violations?: readonly string[] };
+        console.error("[generateTailoredResume] pipeline failed", {
+          name: err?.name,
+          message: err?.message,
+          violations: err?.violations,
+          stack: err?.stack,
+          roleFocus,
+          emphasis,
+        });
         const fallback = staticFallbackUrl();
         if (fallback) {
           return {
