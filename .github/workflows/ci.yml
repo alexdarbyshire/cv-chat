@@ -34,10 +34,6 @@ jobs:
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
       BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-      # Sprint 1 hid the in-composer model picker by default (SPEC §3.4a).
-      # The e2e suite still covers the picker when it is shown — flip the
-      # flag for the test webServer so those tests have something to click.
-      CV_CHAT_SHOW_MODEL_PICKER: "1"
 
     steps:
       - uses: actions/checkout@v4

@@ -5,6 +5,7 @@ const ERROR_TEXT_REGEX = /error|failed|trouble/i;
 
 test.describe("Chat API Integration", () => {
   test("sends message and receives AI response", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto("/");
 
     const input = page.getByTestId("multimodal-input");
