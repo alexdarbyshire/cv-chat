@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbo --port 3000 --hostname 0.0.0.0",
     "ingest": "tsx scripts/ingest.ts",
+    "theme:extract": "tsx scripts/extract-blog-theme.ts",
     "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "check": "ultracite check",
