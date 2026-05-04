@@ -43,6 +43,20 @@ that answers questions about a user's career history using RAG.
 - **Migrations are checked in**. Drizzle generates them; never edit by hand.
 - **Tests**: Playwright for the chat happy-path, Vitest for `lib/rag/`. Don't pad coverage; cover what would silently break in prod.
 
+## Quality gates (pre-commit)
+
+Husky's `pre-commit` hook runs three checks, in order, on every commit:
+
+1. **`pnpm exec ultracite check`** — Biome lint + format. Auto-fix locally with `pnpm fix` if it complains.
+2. **`pnpm exec tsc --noEmit`** — full-project typecheck. `next build` does this too but is too slow to run mid-task.
+3. **`pnpm exec knip`** — dead code, dead exports, unused dependencies. Config in `knip.json` already tolerates shadcn/ui and AI Elements vendor surfaces; *new* dead code is fair game.
+
+Run any of these mid-task to check yourself before committing. A clean run on all three is the bar for opening a PR.
+
+`pnpm test:unit` (Vitest) is **not** in the pre-commit chain — kept fast. Run it yourself when touching anything in `lib/` (especially `lib/auth/`, `lib/rag/`). CI runs the full set including Playwright.
+
+**`--no-verify` policy**: do not bypass the pre-commit hook unless the user has explicitly authorized it for the current commit. The legitimate case is "I'm landing intentionally-partial state and the next commit completes it" (e.g. adding a function that the next commit will wire up). Anything else — fix the underlying problem, don't skip.
+
 ## Skills available to you
 
 The following skills are committed to `.claude/skills/`:
