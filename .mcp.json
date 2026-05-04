@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tidewave": {
+      "type": "http",
+      "url": "http://localhost:3000/tidewave/mcp"
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    }
+  }
+}
