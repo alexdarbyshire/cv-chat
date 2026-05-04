@@ -3,9 +3,14 @@ node_modules/
 .pnp
 .pnp.js
 .yarn/install-state.gz
+.pnpm-store/
 
 # Testing
 coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/*
 
 # Next.js
 .next/
@@ -15,6 +20,9 @@ next-env.d.ts
 # Production
 build/
 dist/
+
+# Turbo
+.turbo
 
 # Misc
 .DS_Store
@@ -37,6 +45,7 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # Editors
 .vscode/
@@ -50,3 +59,7 @@ corpus/
 data/raw/
 data/embeddings/
 *.parquet
+
+# Worker scratchpads (never committed)
+tmp-*.txt
+tmp-*.md
