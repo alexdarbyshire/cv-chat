@@ -18,3 +18,4 @@ export const EMBEDDING_MODEL_ID =
   process.env.CV_CHAT_EMBEDDING_MODEL ?? "openai/text-embedding-3-small";
 
 export const SEARCH_CAREER_HISTORY_TOOL = "searchCareerHistory";
+export const GENERATE_TAILORED_RESUME_TOOL = "generateTailoredResume";

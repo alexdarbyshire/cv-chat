@@ -1,5 +1,20 @@
 export const DEFAULT_CHAT_MODEL = "moonshotai/kimi-k2.5";
 
+/**
+ * Default model for the resume `generateText` pipeline. Decoupled from the
+ * chat default because:
+ *  1. Most chat models hang or fail repeatedly on structured output with this
+ *     schema (kimi-k2.5 timed out >180s; mistral/sonnet/haiku failed bound
+ *     validation up to 36s; openai-mini errored at the gateway on `format:
+ *     'uri'`). Gemini 2.5 Flash lands within bounds in 12-30s with one or
+ *     two retry-with-feedback passes.
+ *  2. The chat model picks itself per-request via `selectedChatModel`; the
+ *     resume pipeline shouldn't have to share that choice.
+ *
+ * Override via `CV_CHAT_RESUME_MODEL`.
+ */
+export const DEFAULT_RESUME_MODEL = "google/gemini-2.5-flash";
+
 export const titleModel = {
   id: "mistral/mistral-small",
   name: "Mistral Small",

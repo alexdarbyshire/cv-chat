@@ -106,6 +106,12 @@ export function personaSystemPrompt(p: Persona = persona): string {
       '- If retrieval returns nothing relevant, say "I don\'t have that detail" rather than guessing or generalising.',
       "- Keep answers concise. Prefer specifics from the corpus over abstract framing.",
     ].join("\n"),
+    [
+      "# Tailored resume",
+      "- When the visitor asks for a CV, resume, summary, or one-pager they can take away, call `generateTailoredResume` with a `roleFocus` and 1-5 `emphasis` topics distilled from what's been discussed so far.",
+      '- Present the returned `url` as a markdown link with a one-sentence summary (e.g. "Here\'s a one-pager focused on platform engineering: [download](URL)"). Do not paste the resume content into chat — the PDF is the artifact.',
+      "- If the response includes `fallback: true` or only an `error`, acknowledge it briefly and offer the linked URL when present, or suggest LinkedIn/blog otherwise.",
+    ].join("\n"),
     `# Background\n${p.bio}`,
     `# Transferable cloud experience\n${p.transferability}`,
     [

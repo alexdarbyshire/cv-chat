@@ -23,6 +23,15 @@ importers:
       '@codemirror/view':
         specifier: ^6.35.3
         version: 6.36.4
+      '@myriaddreamin/typst-ts-renderer':
+        specifier: 0.7.0-rc2
+        version: 0.7.0-rc2
+      '@myriaddreamin/typst-ts-web-compiler':
+        specifier: 0.7.0-rc2
+        version: 0.7.0-rc2
+      '@myriaddreamin/typst.ts':
+        specifier: 0.7.0-rc2
+        version: 0.7.0-rc2(@myriaddreamin/typst-ts-renderer@0.7.0-rc2)(@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2)
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
@@ -1136,6 +1145,23 @@ packages:
       zod: ^3.25 || ^4.0
     peerDependenciesMeta:
       '@cfworker/json-schema':
+        optional: true
+
+  '@myriaddreamin/typst-ts-renderer@0.7.0-rc2':
+    resolution: {integrity: sha512-god1tcb2YJDkQfA8gLGcAmykVGBpNKorqqDkXVy3InC18KRbsverJhlrHoONurNIU9JuIHoWjJ2D1ntpjPgzbA==}
+
+  '@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2':
+    resolution: {integrity: sha512-WFO/ecKUfeclld5uDxyjgpnIafKpp2LrS6T1vY+CHaSxCm099AneAQIYFg+OtX+NbFpJsLGCBFSw/qppJJmBAw==}
+
+  '@myriaddreamin/typst.ts@0.7.0-rc2':
+    resolution: {integrity: sha512-VM8JqsRcL3AEJ5cuPBn/YvnGTXK/BRPlxdGB2bR48Of/8OIGaPiunv2QfZBIMBBrtbTygUOtAY9BZvkS1AFqgA==}
+    peerDependencies:
+      '@myriaddreamin/typst-ts-renderer': ^0.7.0-rc2
+      '@myriaddreamin/typst-ts-web-compiler': ^0.7.0-rc2
+    peerDependenciesMeta:
+      '@myriaddreamin/typst-ts-renderer':
+        optional: true
+      '@myriaddreamin/typst-ts-web-compiler':
         optional: true
 
   '@napi-rs/wasm-runtime@1.1.4':
@@ -3762,6 +3788,9 @@ packages:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
 
+  idb@7.1.1:
+    resolution: {integrity: sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ==}
+
   import-in-the-middle@3.0.1:
     resolution: {integrity: sha512-pYkiyXVL2Mf3pozdlDGV6NAObxQx13Ae8knZk1UJRJ6uRW/ZRmTGHlQYtrsSl7ubuE5F8CD1z+s1n4RHNuTtuA==}
     engines: {node: '>=18'}
@@ -5980,6 +6009,17 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
+
+  '@myriaddreamin/typst-ts-renderer@0.7.0-rc2': {}
+
+  '@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2': {}
+
+  '@myriaddreamin/typst.ts@0.7.0-rc2(@myriaddreamin/typst-ts-renderer@0.7.0-rc2)(@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2)':
+    dependencies:
+      idb: 7.1.1
+    optionalDependencies:
+      '@myriaddreamin/typst-ts-renderer': 0.7.0-rc2
+      '@myriaddreamin/typst-ts-web-compiler': 0.7.0-rc2
 
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
@@ -8611,6 +8651,8 @@ snapshots:
   iconv-lite@0.7.2:
     dependencies:
       safer-buffer: 2.1.2
+
+  idb@7.1.1: {}
 
   import-in-the-middle@3.0.1:
     dependencies:

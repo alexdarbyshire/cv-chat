@@ -22,11 +22,13 @@ import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
+import { generateTailoredResumeTool } from "@/lib/ai/tools/generate-tailored-resume";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { searchCareerHistoryTool } from "@/lib/ai/tools/search-career-history";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import {
+  GENERATE_TAILORED_RESUME_TOOL,
   isProductionEnvironment,
   SEARCH_CAREER_HISTORY_TOOL,
 } from "@/lib/constants";
@@ -210,6 +212,7 @@ export async function POST(request: Request) {
                   "updateDocument",
                   "requestSuggestions",
                   SEARCH_CAREER_HISTORY_TOOL,
+                  GENERATE_TAILORED_RESUME_TOOL,
                 ],
           providerOptions: {
             ...(modelConfig?.gatewayOrder && {
@@ -238,6 +241,9 @@ export async function POST(request: Request) {
               modelId: chatModel,
             }),
             [SEARCH_CAREER_HISTORY_TOOL]: searchCareerHistoryTool({ session }),
+            [GENERATE_TAILORED_RESUME_TOOL]: generateTailoredResumeTool({
+              session,
+            }),
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
