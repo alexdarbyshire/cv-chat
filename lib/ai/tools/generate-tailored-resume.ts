@@ -49,7 +49,7 @@ export const generateTailoredResumeTool = ({
 }: GenerateTailoredResumeProps) =>
   tool({
     description:
-      "Generate a tailored one-page resume PDF for the visitor based on the conversation. Call this when they ask for a CV, resume, or downloadable summary. Distill `roleFocus` (the role/discipline the resume should aim at) and 1-5 `emphasis` topics from what's been discussed. The PDF is pinned to the artifact pane automatically — do NOT paste the URL or the resume content into chat. Just write a brief one-line acknowledgement that the pin happened.",
+      "Generate a tailored one-page resume PDF for the visitor based on the conversation. Call this when they ask for a CV, resume, or downloadable summary. Distill `roleFocus` (the role/discipline the resume should aim at) and 1-5 `emphasis` topics from what's been discussed. This tool may take 5-15 seconds to return. BEFORE calling it, write one short sentence telling the visitor you're generating their CV now (e.g. \"Generating a tailored one-pager now.\"). The PDF is pinned to the artifact pane automatically — do NOT paste the URL or the resume content into chat. After it returns, write a one-line confirmation that the pin happened.",
     inputSchema: z.object({
       roleFocus: z
         .string()
