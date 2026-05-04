@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   composeResumeJSON,
+  type RawResumeContent,
   type ResumeContent,
   ResumeContentSchema,
+  validateResumeBounds,
 } from "./schema";
 
 const validContent: ResumeContent = {
@@ -34,6 +36,8 @@ const validContent: ResumeContent = {
   ],
   skills: ["Kubernetes", "Postgres", "Terraform", "TypeScript"],
 };
+
+const validRaw: RawResumeContent = validContent;
 
 describe("ResumeContentSchema", () => {
   it("accepts well-formed content within all bounds", () => {
@@ -78,20 +82,6 @@ describe("ResumeContentSchema", () => {
     expect(r.success).toBe(false);
   });
 
-  it("rejects an invalid project URL", () => {
-    const r = ResumeContentSchema.safeParse({
-      ...validContent,
-      projects: [
-        {
-          name: "Project",
-          summary: "Summary",
-          url: "not-a-url",
-        },
-      ],
-    });
-    expect(r.success).toBe(false);
-  });
-
   it("accepts projects with no URL (url is optional)", () => {
     const r = ResumeContentSchema.safeParse({
       ...validContent,
@@ -122,8 +112,85 @@ describe("composeResumeJSON", () => {
     expect(json.socials.blog).toBe("https://example.test/blog");
     expect(json.socials.linkedin).toBe("https://linkedin.test/alex");
     expect(json.socials.github).toBeUndefined();
-    // content fields preserved
     expect(json.headline).toBe(validContent.headline);
     expect(json.skills).toEqual(validContent.skills);
+  });
+});
+
+describe("validateResumeBounds", () => {
+  it("accepts compliant raw content and returns a strict ResumeContent", () => {
+    const r = validateResumeBounds(validRaw);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.content.headline).toBe(validContent.headline);
+      // Strict schema accepts the result.
+      expect(ResumeContentSchema.safeParse(r.content).success).toBe(true);
+    }
+  });
+
+  it("flags overlong fields with specific violations", () => {
+    const r = validateResumeBounds({
+      ...validRaw,
+      headline: "x".repeat(120),
+      summary: "y".repeat(400),
+      highlights: ["z".repeat(200), "ok highlight"],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.violations.some((v) => v.match(/headline is 120/))).toBe(true);
+      expect(r.violations.some((v) => v.match(/summary is 400/))).toBe(true);
+      expect(r.violations.some((v) => v.match(/highlight\[0\] is 200/))).toBe(
+        true
+      );
+    }
+  });
+
+  it("flags too-many highlights and too-many skills", () => {
+    const r = validateResumeBounds({
+      ...validRaw,
+      highlights: ["a", "b", "c", "d", "e"],
+      skills: Array.from({ length: 25 }, (_, i) => `s${i}`),
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.violations.some((v) => v.match(/5 highlights/))).toBe(true);
+      expect(r.violations.some((v) => v.match(/25 skills/))).toBe(true);
+    }
+  });
+
+  it("drops empty-string and non-http URLs silently (url is optional)", () => {
+    const r = validateResumeBounds({
+      ...validRaw,
+      projects: [
+        { name: "P1", summary: "S1", url: "" },
+        { name: "P2", summary: "S2", url: "not-a-url" },
+        { name: "P3", summary: "S3", url: "ftp://nope" },
+      ],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.content.projects[0].url).toBeUndefined();
+      expect(r.content.projects[1].url).toBeUndefined();
+      expect(r.content.projects[2].url).toBeUndefined();
+    }
+  });
+
+  it("preserves valid http(s) project URLs", () => {
+    const r = validateResumeBounds({
+      ...validRaw,
+      projects: [{ name: "P", summary: "S", url: "https://example.test/proj" }],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.content.projects[0].url).toBe("https://example.test/proj");
+    }
+  });
+
+  it("flags empty required strings", () => {
+    const r = validateResumeBounds({ ...validRaw, headline: "   " });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.violations.some((v) => v.match(/headline is empty/))).toBe(true);
+    }
   });
 });

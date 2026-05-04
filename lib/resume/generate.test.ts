@@ -1,12 +1,13 @@
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SearchHit } from "@/lib/rag/search";
+import type { RawResumeContent } from "./schema";
 
 vi.mock("ai", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
-    generateObject: vi.fn(),
+    generateText: vi.fn(),
   };
 });
 
@@ -15,9 +16,12 @@ vi.mock("@/lib/rag/search", () => ({
   DEFAULT_K: 6,
 }));
 
-const { generateTailoredResume, RESUME_RETRIEVAL_K } = await import(
-  "./generate"
-);
+const {
+  generateTailoredResume,
+  MAX_RETRIES,
+  RESUME_RETRIEVAL_K,
+  ResumeBoundsError,
+} = await import("./generate");
 const { searchCareerHistory } = await import("@/lib/rag/search");
 
 const fakeHits: SearchHit[] = [
@@ -37,7 +41,7 @@ const fakeHits: SearchHit[] = [
   },
 ];
 
-const fakeContent = {
+const cleanContent: RawResumeContent = {
   headline: "Platform engineer · cloud-native infra",
   summary: "Ten+ years across application and platform.",
   highlights: ["Built a 50-app Kubernetes platform"],
@@ -53,29 +57,72 @@ const fakeContent = {
   skills: ["Kubernetes", "Postgres"],
 };
 
-type AnyMock = ReturnType<typeof vi.mocked<typeof generateObject>>;
+const overlongContent: RawResumeContent = {
+  ...cleanContent,
+  // 280-char max; this is way over.
+  summary: "x".repeat(400),
+};
+
+type AnyMock = ReturnType<typeof vi.mocked<typeof generateText>>;
+
+function mockOutputs(...outputs: RawResumeContent[]) {
+  const mock = vi.mocked(generateText) as unknown as AnyMock;
+  for (const out of outputs) {
+    mock.mockResolvedValueOnce({ output: out } as never);
+  }
+}
 
 describe("generateTailoredResume", () => {
   beforeEach(() => {
-    vi.mocked(generateObject).mockReset();
+    vi.mocked(generateText).mockReset();
     vi.mocked(searchCareerHistory).mockReset();
     vi.mocked(searchCareerHistory).mockResolvedValue(fakeHits);
-    (vi.mocked(generateObject) as unknown as AnyMock).mockResolvedValue({
-      object: fakeContent,
-    } as never);
   });
 
-  it("retrieves with the larger resume k by default", async () => {
-    await generateTailoredResume({
-      brief: { roleFocus: "Platform engineering", emphasis: ["Kubernetes"] },
+  it("returns first-pass result when bounds are clean", async () => {
+    mockOutputs(cleanContent);
+    const r = await generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
     });
-
-    expect(searchCareerHistory).toHaveBeenCalledTimes(1);
-    const call = vi.mocked(searchCareerHistory).mock.calls[0];
-    expect(call[1]).toMatchObject({ k: RESUME_RETRIEVAL_K });
+    expect(r.attempts).toBe(1);
+    expect(r.json.headline).toBe(cleanContent.headline);
+    expect(generateText).toHaveBeenCalledTimes(1);
   });
 
-  it("composes the search query from roleFocus + emphasis", async () => {
+  it("retries with violation feedback when first pass overshoots", async () => {
+    mockOutputs(overlongContent, cleanContent);
+    const r = await generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
+    });
+    expect(r.attempts).toBe(2);
+    expect(generateText).toHaveBeenCalledTimes(2);
+
+    // Second call should include the prior assistant response + a violations user follow-up.
+    const secondCall = vi.mocked(generateText).mock.calls[1][0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    const followup = secondCall.messages.at(-1);
+    expect(followup?.role).toBe("user");
+    expect(followup?.content).toMatch(/exceeds the limits/i);
+    expect(followup?.content).toMatch(/summary is 400 chars/);
+  });
+
+  it("throws ResumeBoundsError after MAX_RETRIES retries", async () => {
+    // MAX_RETRIES + 1 total attempts, all overlong.
+    const all = Array.from({ length: MAX_RETRIES + 1 }, () => overlongContent);
+    mockOutputs(...all);
+    const promise = generateTailoredResume({
+      brief: { roleFocus: "Platform", emphasis: ["k8s"] },
+    });
+    await expect(promise).rejects.toBeInstanceOf(ResumeBoundsError);
+    await expect(promise).rejects.toMatchObject({
+      violations: expect.arrayContaining([expect.stringMatching(/summary/)]),
+    });
+    expect(generateText).toHaveBeenCalledTimes(MAX_RETRIES + 1);
+  });
+
+  it("retrieves with RESUME_RETRIEVAL_K and composes the search query from brief", async () => {
+    mockOutputs(cleanContent);
     await generateTailoredResume({
       brief: {
         roleFocus: "Platform engineering",
@@ -83,54 +130,55 @@ describe("generateTailoredResume", () => {
       },
     });
 
-    const [query] = vi.mocked(searchCareerHistory).mock.calls[0];
+    expect(searchCareerHistory).toHaveBeenCalledTimes(1);
+    const [query, opts] = vi.mocked(searchCareerHistory).mock.calls[0];
     expect(query).toBe("Platform engineering, Kubernetes, Observability");
+    expect(opts).toMatchObject({ k: RESUME_RETRIEVAL_K });
   });
 
   it("threads isOwner through to retrieval", async () => {
+    mockOutputs(cleanContent);
     await generateTailoredResume({
       brief: { roleFocus: "Platform", emphasis: ["k8s"] },
       isOwner: true,
     });
-
-    const call = vi.mocked(searchCareerHistory).mock.calls[0];
-    expect(call[1]).toMatchObject({ isOwner: true });
+    const opts = vi.mocked(searchCareerHistory).mock.calls[0][1];
+    expect(opts).toMatchObject({ isOwner: true });
   });
 
-  it("returns a ResumeJSON with persona identity and source citations", async () => {
-    const result = await generateTailoredResume({
+  it("composes ResumeJSON with persona identity and surfaces sources", async () => {
+    mockOutputs(cleanContent);
+    const r = await generateTailoredResume({
       brief: { roleFocus: "Platform", emphasis: ["k8s"] },
     });
 
-    expect(result.json.headline).toBe(fakeContent.headline);
-    // name + socials are persona-injected, not from the model.
-    expect(typeof result.json.name).toBe("string");
-    expect(result.json.name.length).toBeGreaterThan(0);
-    expect(result.json.socials).toBeDefined();
+    expect(typeof r.json.name).toBe("string");
+    expect(r.json.name.length).toBeGreaterThan(0);
+    expect(r.json.socials).toBeDefined();
 
-    expect(result.sources).toHaveLength(2);
-    expect(result.sources[0]).toEqual({
+    expect(r.sources).toHaveLength(2);
+    expect(r.sources[0]).toEqual({
       sourcePath: "Project_Portfolio.md",
       headingPath: "Career > Platform > Lead",
       publicUrl: "https://example.test/portfolio",
     });
   });
 
-  it("propagates the brief into the prompt sent to generateObject", async () => {
+  it("interleaves the brief and source chunks into the prompt", async () => {
+    mockOutputs(cleanContent);
     await generateTailoredResume({
       brief: {
         roleFocus: "Platform engineering",
         emphasis: ["Kubernetes", "Observability"],
       },
     });
-
-    const call = vi.mocked(generateObject).mock.calls[0][0] as {
-      prompt: string;
+    const call = vi.mocked(generateText).mock.calls[0][0] as {
+      messages: Array<{ role: string; content: string }>;
     };
-    expect(call.prompt).toContain("Platform engineering");
-    expect(call.prompt).toContain("Kubernetes");
-    expect(call.prompt).toContain("Observability");
-    // Sources are interleaved into the prompt for grounding.
-    expect(call.prompt).toContain("Project_Portfolio.md");
+    const userPrompt = call.messages[0].content;
+    expect(userPrompt).toContain("Platform engineering");
+    expect(userPrompt).toContain("Kubernetes");
+    expect(userPrompt).toContain("Observability");
+    expect(userPrompt).toContain("Project_Portfolio.md");
   });
 });

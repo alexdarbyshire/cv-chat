@@ -1,27 +1,27 @@
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ai", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
-    generateObject: vi.fn(),
+    generateText: vi.fn(),
   };
 });
 
 const { deriveFocusBrief } = await import("./brief");
 
-type AnyMock = ReturnType<typeof vi.mocked<typeof generateObject>>;
+type AnyMock = ReturnType<typeof vi.mocked<typeof generateText>>;
 
 function mockBrief(brief: { roleFocus: string; emphasis: string[] }) {
-  (vi.mocked(generateObject) as unknown as AnyMock).mockResolvedValue({
-    object: brief,
+  (vi.mocked(generateText) as unknown as AnyMock).mockResolvedValue({
+    output: brief,
   } as never);
 }
 
 describe("deriveFocusBrief", () => {
   beforeEach(() => {
-    vi.mocked(generateObject).mockReset();
+    vi.mocked(generateText).mockReset();
   });
 
   it("returns the schema-validated brief from the model", async () => {
@@ -37,7 +37,7 @@ describe("deriveFocusBrief", () => {
 
     expect(result.roleFocus).toBe("Platform engineering");
     expect(result.emphasis).toEqual(["Kubernetes", "Observability"]);
-    expect(generateObject).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledTimes(1);
   });
 
   it("only feeds the last 12 messages to the model (token control)", async () => {
@@ -53,7 +53,7 @@ describe("deriveFocusBrief", () => {
 
     await deriveFocusBrief(messages);
 
-    const call = vi.mocked(generateObject).mock.calls[0][0] as {
+    const call = vi.mocked(generateText).mock.calls[0][0] as {
       messages: Array<{ content: string }>;
     };
     expect(call.messages).toHaveLength(12);

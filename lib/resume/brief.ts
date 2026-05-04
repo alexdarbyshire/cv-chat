@@ -1,6 +1,6 @@
-import { generateObject, type ModelMessage } from "ai";
+import { generateText, type ModelMessage, Output } from "ai";
 import { z } from "zod";
-import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { DEFAULT_RESUME_MODEL } from "@/lib/ai/models";
 import { getLanguageModel } from "@/lib/ai/providers";
 
 /**
@@ -55,15 +55,19 @@ export async function deriveFocusBrief(
   opts: { modelId?: string } = {}
 ): Promise<FocusBrief> {
   const modelId =
-    opts.modelId ?? process.env.CV_CHAT_RESUME_MODEL ?? DEFAULT_CHAT_MODEL;
+    opts.modelId ?? process.env.CV_CHAT_RESUME_MODEL ?? DEFAULT_RESUME_MODEL;
   const tail = messages.slice(-MAX_BRIEF_MESSAGES);
 
-  const { object } = await generateObject({
+  const result = await generateText({
     model: getLanguageModel(modelId),
-    schema: FocusBriefSchema,
     system: BRIEF_SYSTEM,
     messages: tail,
+    output: Output.object({
+      schema: FocusBriefSchema,
+      name: "focusBrief",
+      description: "Distilled tailoring brief from recent conversation",
+    }),
   });
 
-  return object;
+  return result.output;
 }

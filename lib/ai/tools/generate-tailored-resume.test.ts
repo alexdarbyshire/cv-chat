@@ -83,6 +83,7 @@ describe("generateTailoredResumeTool", () => {
       json: sampleJson,
       brief: { roleFocus: "Platform", emphasis: ["k8s"] },
       sources: [],
+      attempts: 1,
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "https://blob.example.test/resume.pdf",
@@ -107,6 +108,7 @@ describe("generateTailoredResumeTool", () => {
       json: sampleJson,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
+      attempts: 1,
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "https://blob.example.test/r.pdf",
@@ -126,6 +128,7 @@ describe("generateTailoredResumeTool", () => {
       json: sampleJson,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
+      attempts: 1,
     });
     vi.mocked(getOrRenderResume).mockResolvedValue({
       url: "u",
@@ -162,6 +165,7 @@ describe("generateTailoredResumeTool", () => {
       json: sampleJson,
       brief: { roleFocus: "x", emphasis: ["y"] },
       sources: [],
+      attempts: 1,
     });
     vi.mocked(getOrRenderResume).mockRejectedValue(new Error("typst exploded"));
     vi.mocked(staticFallbackUrl).mockReturnValue(
