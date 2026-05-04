@@ -15,7 +15,6 @@
     "postcss-load-config",
     "@types/d3-scale",
     "@types/pdf-parse",
-    "@vercel/analytics",
     "use-stick-to-bottom",
     "@opentelemetry/sdk-node"
   ],
