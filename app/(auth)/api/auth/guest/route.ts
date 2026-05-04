@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { signIn } from "@/app/(auth)/auth";
+import { isHttpsRequest } from "@/lib/auth/utils";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,15 +11,10 @@ export async function GET(request: Request) {
       ? rawRedirect
       : "/";
 
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const isHttps = forwardedProto
-    ? forwardedProto === "https"
-    : new URL(request.url).protocol === "https:";
-
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
-    secureCookie: isHttps,
+    secureCookie: isHttpsRequest(request),
   });
 
   if (token) {
