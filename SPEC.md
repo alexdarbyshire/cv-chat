@@ -24,6 +24,7 @@ A chatbot that answers questions about a person's body of work — projects, tec
 - Voice / audio.
 - File uploads from users.
 - A separate "static resume download" UX. The tailored PDF generator (§3.8) is the shine on top; a static PDF is just a fallback if generation fails.
+- Email/password authentication. Google + guest only — see §3.2.
 
 ## 2. Stack
 
@@ -99,9 +100,15 @@ We do not introduce LangChain, LlamaIndex, a separate vector DB, or any framewor
 
 ### 3.2 Auth
 
+Two identities only: **anonymous guest** and **Google**. No email/password. Vercel chat-sdk template's existing patterns are the floor; we simplify, not extend.
+
 - **Guest sessions**: Auth.js Credentials provider that creates a signed cookie on first visit, no password. Already a pattern in the chat-sdk template.
-- **Google**: Auth.js Google provider. Lifts the rate-limit cap. We never request more than `email profile` scopes.
-- **Account linking**: signed-in user inherits their guest session's chat history (one-time migration on first sign-in).
+- **Google**: Auth.js Google provider. Lifts the rate-limit cap. We never request more than `email profile` scopes. Anyone with a Google account can sign in — no allowlist.
+- **No registration UI.** The chat-sdk template ships an email/password Credentials provider plus `/register` and `/login` pages with form fields. We strip both — `/register` is removed, `/login` shows only "Continue with Google" (and only renders if linked from the rate-limit CTA; visitors don't navigate to it manually).
+- **Rate-limit CTA** (per §3.3): when a guest hits the cap, the 429 surface includes a "Continue with Google" button that drops straight into the Google OAuth redirect. No intermediate "create an account" step exists or is offered.
+- **Account linking**: a guest's chat history migrates to their Google account on first sign-in (one-time, by guest-cookie session id). The migration happens inside the `signIn` callback — no separate UI.
+
+This is intentionally narrow. A fork that wants email/password back can re-add the chat-sdk template's `/register` route; no code in our layer prevents it. We don't ship it ourselves because the maintenance cost (password reset flows, email verification, leaked-password handling) doesn't earn its way for the visitor profile (read-only audience asking about a portfolio).
 
 ### 3.3 Rate limiting
 
@@ -113,7 +120,7 @@ Sliding window via `@upstash/ratelimit`:
 | google (signed in) | 25 messages | 24h | `user:<id>` |
 | global circuit-breaker | 5000 messages | 24h | `global` |
 
-When hit: 429 with a friendly message. Sign-in CTA for guests; "come back tomorrow" for signed-in.
+When hit: 429 with a friendly message. **Guest CTA: a single "Continue with Google" button** (per §3.2 — no email/password path exists or is offered). "Come back tomorrow" for signed-in.
 
 ### 3.4 Theming
 
