@@ -69,6 +69,17 @@ The following skills are committed to `.claude/skills/`:
 
 When you're working on something a skill covers, *use* it — don't reinvent.
 
+## MCP servers (dev only)
+
+Two MCP servers are wired in (see `.mcp.json`). Both require `pnpm dev` to be running.
+
+- **`tidewave`** (HTTP, `/tidewave/mcp`) — runtime introspection of the live Next dev server. Prefer over manual investigation:
+  - `project_eval` — run code in app context (resolve imports, hit the DB, test a function with real data) instead of writing a one-off script
+  - `get_logs` — read server console output instead of scrolling the dev tab
+  - `get_source_location` — jump to a symbol's file/line without grep
+  - `get_docs` — installed-version-correct docs for any dependency
+- **`next-devtools`** (stdio, Vercel's `next-devtools-mcp`) — Next 16-aware. **Call `init` once at the start of any Next-related task** to load the tool's own context. Then `nextjs_docs` for framework Q's, `nextjs_call` to talk to Next's built-in `/_next/mcp`. `browser_eval` (Playwright) works in this sandbox via Chromium baked into the image.
+
 ## Things you must NOT do
 
 - Commit secrets, API keys, env values, or anything from the corpus.
