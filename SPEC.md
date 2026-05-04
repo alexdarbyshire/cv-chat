@@ -352,6 +352,16 @@ CV_CHAT_SHOW_MODEL_PICKER=0  # 1 to expose the model picker in the UI (default h
 - **Phase 4 — tailored resume PDF (the differentiator)**: Zod `ResumeSchema`, AI SDK `generateObject`, typst.ts render pipeline, default `templates/resume.typ`, Blob cache, static fallback, `generate_tailored_resume` tool wired into the agent.
 - **Phase 5 — polish**: Turnstile, citation rendering with link previews, seed-question UI, mobile, transcript print stylesheet.
 - **Phase 6 — make it forkable**: SETUP.md, CONTRIBUTING.md, scrub Alex-specific defaults out of code, GH Actions for ingest, sample resume template + persona config for forks.
+- **Phase 7 — quality + warmth**: tighten the most-visible failure modes once the polish phase has landed.
+  - **Reranker over RAG retrieval**. Cross-encoder (Cohere Rerank via AI Gateway, or a self-hosted BGE-reranker behind an env flag) re-scores top-k=6 → top-3 by query-document relevance before passing chunks to the agent. Direct quality lift on overlapping-topic questions; ~1 env var + a no-rerank fallback path. Eval set (§6 risk register) gates the rollout.
+  - **Conversational warmth pass**. System-prompt + small eval set. The current persona errs terse; the predecessor (`interactive-cv-bot`) was warmer. Permit follow-up questions back to the visitor ("want me to dig into X?"), light banter, conversational hooks — without giving up citation discipline. Costs: prompt iteration + 5–10 holdout examples. No infra change.
+  - **Live-activity tool**. `get_recent_activity()` hits the GitHub events API + the blog's RSS feed. Answers "what have you been working on lately?" without re-ingesting the corpus. Cached briefly to keep API quotas safe.
+
+  **Deferred** (revisit only when there's specific evidence of the failure mode):
+  - **Router / intent-classifier agent.** A single agent + good tool descriptions handles intent today; add a router only when single-prompt confusion is observable in real traffic. Premature splits add a per-turn LLM call and coordination cost.
+  - **Splitting / consolidating specialist agents.** Same caveat — earn it.
+  - **Image-gen tool** (architecture diagrams, etc.). Plays well with the build-narrative angle, but reuses Phase 4's artifact plumbing — wait until that's stable.
+  - **Web-fetch tool.** Marginal value while the blog is fully in the corpus.
 
 ## 8. Open questions
 
