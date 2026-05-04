@@ -5,5 +5,12 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx}"],
     exclude: ["node_modules/**", ".next/**", "tests/**"],
     environment: "node",
+    setupFiles: ["./vitest.setup.ts"],
+    alias: [
+      {
+        find: /^@\/(.*)/,
+        replacement: `${new URL(".", import.meta.url).pathname}$1`,
+      },
+    ],
   },
 });

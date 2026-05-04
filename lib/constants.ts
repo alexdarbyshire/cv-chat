@@ -13,3 +13,6 @@ export const guestRegex = /^guest-\d+$/;
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = persona.seedQuestions;
+
+export const EMBEDDING_MODEL_ID =
+  process.env.CV_CHAT_EMBEDDING_MODEL ?? "openai/text-embedding-3-small";

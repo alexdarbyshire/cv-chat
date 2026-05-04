@@ -63,3 +63,6 @@ data/embeddings/
 # Worker scratchpads (never committed)
 tmp-*.txt
 tmp-*.md
+
+# Process crash dumps
+core.*
