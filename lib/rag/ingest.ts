@@ -1,5 +1,3 @@
-import "server-only";
-
 import { readdir, readFile } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
 import { eq, inArray } from "drizzle-orm";

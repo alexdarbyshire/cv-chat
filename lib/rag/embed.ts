@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createHash } from "node:crypto";
 import { embedMany } from "ai";
 import { inArray } from "drizzle-orm";
@@ -8,8 +6,15 @@ import postgres from "postgres";
 import { EMBEDDING_MODEL_ID } from "@/lib/constants";
 import { embedding as embeddingTable } from "@/lib/db/schema";
 
-const client = postgres(process.env.POSTGRES_URL ?? "");
-const db = drizzle(client);
+// Lazy-init: read POSTGRES_URL on first use so callers (Next routes, the
+// ingest CLI, vitest setup) can load env before the connection is opened.
+let _db: ReturnType<typeof drizzle> | null = null;
+function getDb() {
+  if (!_db) {
+    _db = drizzle(postgres(process.env.POSTGRES_URL ?? ""));
+  }
+  return _db;
+}
 
 export function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -57,7 +62,7 @@ export async function embedTextsCached(
   const hashes = texts.map(sha256);
   const uniqueHashes = Array.from(new Set(hashes));
 
-  const existing = await db
+  const existing = await getDb()
     .select({
       contentHash: embeddingTable.contentHash,
       embedding: embeddingTable.embedding,
