@@ -22,6 +22,7 @@
     "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "eval:warmth": "tsx scripts/warmth-eval.ts",
     "gates": "pnpm typecheck && pnpm check && pnpm knip && pnpm test:unit",
     "prepare": "husky"
   },
