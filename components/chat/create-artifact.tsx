@@ -5,6 +5,13 @@ import type { Suggestion } from "@/lib/db/schema";
 import type { ChatMessage, CustomUIDataTypes } from "@/lib/types";
 import type { UIArtifact } from "./artifact";
 
+// Artifact subsystem ships from chat-sdk template with `M = any` defaults.
+// Switching to `unknown` cascades into the artifact-actions / artifact.tsx
+// consumers and exposes pre-existing type holes. Phase 4 (tailored-resume
+// PDF) may replace this subsystem entirely; if it stays, tighten generics
+// at that point. Suppressed (not removed) so any *new* `any` is still caught.
+
+// biome-ignore lint/suspicious/noExplicitAny: see note above
 export type ArtifactActionContext<M = any> = {
   content: string;
   handleVersionChange: (type: "next" | "prev" | "toggle" | "latest") => void;
@@ -15,6 +22,7 @@ export type ArtifactActionContext<M = any> = {
   setMetadata: Dispatch<SetStateAction<M>>;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: artifact subsystem default, see note
 type ArtifactAction<M = any> = {
   icon: ReactNode;
   label?: string;
@@ -33,6 +41,7 @@ export type ArtifactToolbarItem = {
   onClick: (context: ArtifactToolbarContext) => void;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: artifact subsystem default, see note
 type ArtifactContent<M = any> = {
   title: string;
   content: string;
@@ -49,11 +58,13 @@ type ArtifactContent<M = any> = {
   setMetadata: Dispatch<SetStateAction<M>>;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: artifact subsystem default, see note
 type InitializeParameters<M = any> = {
   documentId: string;
   setMetadata: Dispatch<SetStateAction<M>>;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: artifact subsystem default, see note
 type ArtifactConfig<T extends string, M = any> = {
   kind: T;
   description: string;
@@ -68,6 +79,7 @@ type ArtifactConfig<T extends string, M = any> = {
   }) => void;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: artifact subsystem default, see note
 export class Artifact<T extends string, M = any> {
   readonly kind: T;
   readonly description: string;

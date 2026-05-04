@@ -22,7 +22,6 @@
   "linter": {
     "rules": {
       "suspicious": {
-        "noExplicitAny": "off",
         "noUnknownAtRules": "off",
         "noConsole": "off",
         "noBitwiseOperators": "off"

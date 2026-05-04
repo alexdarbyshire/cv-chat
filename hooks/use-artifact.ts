@@ -68,6 +68,7 @@ export function useArtifact() {
   );
 
   const { data: localArtifactMetadata, mutate: setLocalArtifactMetadata } =
+    // biome-ignore lint/suspicious/noExplicitAny: matches Artifact<M = any> default; see create-artifact.tsx
     useSWR<any>(
       () =>
         artifact.documentId ? `artifact-metadata-${artifact.documentId}` : null,
