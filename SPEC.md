@@ -346,7 +346,14 @@ CV_CHAT_SHOW_MODEL_PICKER=0  # 1 to expose the model picker in the UI (default h
   - **Knip**: dead-code, dead-export, and unused-dep detection. Wired into pre-commit (above) and CI. Config tuned to tolerate `app/` route conventions (Next.js entrypoints look unused to Knip without `entry` hints).
   - **Vitest** for `lib/` units (rag chunkers, auth helpers, persona loader, rate-limit). One config, jsdom env for anything touching React, node env otherwise. Wired into `pnpm test:unit` (and `pnpm test` keeps Playwright).
   - **Auth test coverage** specifically: guest-session creation, secure-cookie naming under HTTPS-proxy headers (the bug we just fixed in `proxy.ts` — needs a Vitest regression test), Google OAuth callback path, sign-out cookie clear. Mix of Vitest (cookie-name logic, token validation) and Playwright (full guest-flow happy path, sign-in redirect).
-  - **CI**: single GH Actions workflow runs `typecheck → ultracite check → knip → vitest → playwright` on PR. Fail fast on the cheap checks.
+  - **CI**: single GH Actions workflow runs `typecheck → ultracite check → knip → vitest → playwright` on PR. Fail fast on the cheap checks. Triggers: `pull_request` (forks safe — read-only `GITHUB_TOKEN`, no secrets exposed) and `push` to `main` (post-merge sanity). Never `pull_request_target`. The `Settings → Actions → Approval for first-time contributors` toggle is on, so workflows from new external accounts queue for manual approval before running.
+  - **Branch protection on `main`**: required pull-request reviews aren't enforceable on a single-maintainer repo (you can't approve your own PR), so we don't gate on review. We do gate on:
+    - `Require status checks to pass before merging` — the CI workflow's `gates` job is the required check; main only fast-forwards once gates are green.
+    - `Require conversation resolution before merging`.
+    - `Require linear history` (no merge commits — squash or rebase only).
+    - `Restrict pushes that create matching branches` — direct `git push origin main` is blocked; the only way state lands on main is through a PR, which exercises the workflow.
+    - `Block force pushes` and `Restrict deletions` on `main`.
+  - **Workflow execution from forks**: by sticking to `pull_request` (not `pull_request_target`), workflows triggered by forks run with a read-only token in an isolated context — they cannot read repository secrets, write to the repo, or escalate. Combined with the first-time-contributor approval toggle, this means a malicious fork PR can't exfiltrate secrets or run code on the upstream repo's behalf without explicit maintainer approval.
 - **Phase 2 — RAG**: pgvector schema + drizzle, ingestion script, retrieval tool, eval set.
 - **Phase 3 — auth + limits**: Google provider, guest session, Upstash rate-limit, history persistence.
 - **Phase 4 — tailored resume PDF (the differentiator)**: Zod `ResumeSchema`, AI SDK `generateObject`, typst.ts render pipeline, default `templates/resume.typ`, Blob cache, static fallback, `generate_tailored_resume` tool wired into the agent.
