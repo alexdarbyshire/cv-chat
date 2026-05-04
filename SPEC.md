@@ -38,7 +38,8 @@ A chatbot that answers questions about a person's body of work — projects, tec
 | Auth | Auth.js (NextAuth v5) | Already in the template; supports guest + Google |
 | Rate limit | Upstash Redis (`@upstash/ratelimit`) | Free tier covers this; idiomatic |
 | Components | shadcn/ui + Tailwind | Template default; CSS-variable theming |
-| Theme switcher | `next-themes` | Standard pairing with shadcn |
+| Theme switcher | `next-themes` (dark forced) | Dark-only — see §3.4 |
+| Analytics | Vercel Analytics | Built-in, GDPR-light, dashboards out of the box; PostHog later if behavioural depth is wanted |
 | Storage | Vercel Blob (template default) | Caches generated PDFs by content hash |
 | PDF rendering | typst (WASM via `@myriaddreamin/typst.ts`) | Modern typesetting; deterministic; runs in serverless without headless Chromium |
 | Structured generation | AI SDK `generateObject` + Zod | Resume content as schema-validated JSON |
@@ -116,15 +117,20 @@ When hit: 429 with a friendly message. Sign-in CTA for guests; "come back tomorr
 
 ### 3.4 Theming
 
-The blog (`alexdarbyshire.com`) uses a Hugo `terminal` theme: monospace, terminal-aesthetic, light/dark.
+The blog (`alexdarbyshire.com`) uses a Hugo `terminal` theme: monospace, terminal-aesthetic, dark.
 
 Implementation rules:
 - **Tokens only**. Colors, fonts, spacing live in `theme/tokens.css` as CSS custom properties (HSL form, shadcn convention). Components reference tokens, never hex values.
 - **Tailwind reads tokens**. `tailwind.config.ts` `theme.extend.colors` maps to `hsl(var(--token))`.
 - **Fonts via `next/font`**. Match the blog's monospace stack.
-- **Light/dark via `next-themes`**. Pair with shadcn's `ThemeProvider`.
+- **Dark-only by default**. Light mode is disabled — the terminal aesthetic is dark-monospace; light mode adds maintenance burden (two token sets, two screenshots, two failure modes) for an audience that doesn't need it. `next-themes` is configured with `defaultTheme="dark"` and `forcedTheme="dark"`, and the theme-toggle UI is removed. A fork that wants light mode flips the `forcedTheme` and re-enables the toggle.
 - **Single switchable theme module**. To re-skin a fork, edit `theme/tokens.css` and `theme/persona.ts`; nothing else.
 - **Source extraction**: a one-shot script `scripts/extract-blog-theme.ts` parses the blog's CSS to seed `theme/tokens.css` accurately rather than eyeballing.
+
+### 3.4a UX chrome
+
+- **Model picker hidden by default.** The visitor doesn't care which model answers; exposing the picker invites comparison and confusion. Hide via `CV_CHAT_SHOW_MODEL_PICKER` env (default `0`); set to `1` for dev/demo. The selection plumbing stays in place — only the trigger is gated, so forks (or local dev) flip one env var to expose it.
+- **OpenGraph image.** Static `app/opengraph-image.png` (1200×630) matching the blog's terminal-block nameplate (dark slate `#1c1c1c` background, green `#a3d49b` accent box around "Alex Darbyshire", monospace, vertical-bar pattern). Wired via Next 15 file convention; no per-page generation. A fork swaps the file (or replaces with a `route.ts` for dynamic `next/og` if they want per-conversation OG images later).
 
 ### 3.5 Persona
 
@@ -136,15 +142,23 @@ export const persona = {
   voice: "first-person",            // "first-person" | "assistant"
   systemPrompt: "...",              // template, gets corpus stats injected
   seedQuestions: [
-    "What's your DevOps and platform-engineering experience?",
-    "Tell me about a time you led a team.",
-    "What home-infra projects have you built recently?",
+    "Generate a CV for an AI platform engineer role.",
+    "Tell me how this site was built.",
+    "What other projects has Alex got in the public domain?",
+    "What's Alex's experience with agents, MCPs, and the like?",
   ],
   socials: { blog: "...", github: "...", linkedin: "..." },
 };
 ```
 
 A fork edits this file (or env vars) and gets a different persona. No code changes.
+
+**Build-narrative content.** The seed question "Tell me how this site was built" presumes the bot can answer it accurately. Two options for surfacing that content:
+
+1. **System prompt addendum** (preferred for v1): a `BUILD_NARRATIVE` constant in `theme/persona.ts` documenting the agentic stack — Claude Code workers in Kind pods orchestrated by a butler agent, Tilt for live reload of worker manifests, hostPath mounts for shared state, this repo as the example output. Injected into the system prompt under a `## How this was built` heading. Cheap, deterministic, no corpus changes.
+2. **Corpus chunk**: a `meta/build.md` ingested into pgvector. More flexible (the bot can cite it like any other source) but requires re-ingest on edits.
+
+Default to (1); promote to (2) if the narrative grows enough to need its own retrieval.
 
 ### 3.6 Chat history & persistence
 
@@ -189,9 +203,11 @@ generate_tailored_resume(role_focus, emphasis[])  ← LLM-callable tool
        │
        ├─ 4. cache: Vercel Blob, key = sha256(JSON)
        │
-       └─ 5. return { url, json_summary } to the LLM
-              LLM presents URL in chat + a one-line summary.
+       └─ 5. surface as an artifact (chat-sdk artifact pane)
+              + return { url, json_summary } to the LLM for a one-line chat note
 ```
+
+**Artifact-pane integration (revised v2).** The earlier draft kept the PDF out of the chat-sdk artifact pane on the rationale that it's a "takeaway, not editable." That was wrong — the artifact pane is also the right surface for *non-editable* takeaways the visitor wants pinned alongside the conversation. A new `kind: 'pdf'` artifact type with an inline PDF.js / `<iframe src=blob_url>` renderer lets the visitor flip back to the PDF without re-scrolling the chat. The tool still returns `{ url, json_summary }` to the LLM for a brief in-chat note ("Pinned a one-pager focused on platform engineering →"), and the artifact pane handles display. Keeps the chat history clean and gives the takeaway a permanent home for the session.
 
 **Schema with hard limits** — the renderer can never overflow if the input is bounded:
 
@@ -300,6 +316,9 @@ BLOB_READ_WRITE_TOKEN=...
 
 # Optional model override
 CV_CHAT_MODEL=anthropic/claude-sonnet-4-6  # default
+
+# UX flags
+CV_CHAT_SHOW_MODEL_PICKER=0  # 1 to expose the model picker in the UI (default hidden — see §3.4a)
 ```
 
 `.env.example` ships with these and zero values.
