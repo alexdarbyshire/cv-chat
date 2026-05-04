@@ -62,7 +62,7 @@ https://github.com/alexdarbyshire/cv-chat is the canonical example output of \
 that pipeline — including this paragraph.`;
 
 const DEFAULT_GREETING_FOOTER =
-  "Built phone-first via the agentic worker stack documented in the README. Some questions land better than others; the tailored CV is the most polished thing here.";
+  "Built phone-first via the agentic worker stack documented in the README. Some answers land better than others — early days.";
 
 function envText(value: string | undefined): string | undefined {
   if (!value) {
