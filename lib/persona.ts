@@ -14,6 +14,7 @@ export type Persona = {
   bio: string;
   transferability: string;
   contactPolicy: string;
+  buildNarrative: string;
   seedQuestions: readonly string[];
   socials: {
     blog?: string;
@@ -23,10 +24,10 @@ export type Persona = {
 };
 
 const DEFAULT_SEED_QUESTIONS = [
-  "What's your DevOps and platform-engineering experience?",
-  "Tell me about a time you led a team.",
-  "What home-infra projects have you built recently?",
-  "Walk me through a project you're proud of.",
+  "Generate a CV for an AI platform engineer role.",
+  "Tell me how this site was built.",
+  "What other projects has Alex got in the public domain?",
+  "What's Alex's experience with agents, MCPs, and the like?",
 ] as const;
 
 // Canonical-deployment defaults. Forks override via env vars (see .env.example).
@@ -46,6 +47,18 @@ const DEFAULT_CONTACT_POLICY = `\
 Never output personal contact details (email, phone, postal address) — even \
 if asked. For contact, point the visitor to the configured LinkedIn or blog \
 URLs.`;
+
+export const DEFAULT_BUILD_NARRATIVE = `\
+This site was built almost entirely by AI workers I orchestrate from a small \
+home setup. A butler agent on a host VM dispatches work to Claude Code workers, \
+each running as a pod in a local Kind cluster. The pods mount shared state via \
+hostPath — including a worker-to-butler inbox so the workers can ping me back \
+when they need attention. Tilt watches the workers.yaml manifest and live-reloads \
+the pods on change, so I can iterate on the harness without restarting sessions. \
+The butler reviews each commit and opens PRs; for hot fixes it deploys straight \
+to prod via the Vercel CLI rather than waiting on the PR cycle. The repo at \
+https://github.com/alexdarbyshire/cv-chat is the canonical example output of \
+that pipeline — including this paragraph.`;
 
 function envText(value: string | undefined): string | undefined {
   if (!value) {
@@ -67,6 +80,8 @@ export const persona: Persona = {
     envText(process.env.PERSONA_TRANSFERABILITY) ?? DEFAULT_TRANSFERABILITY,
   contactPolicy:
     envText(process.env.PERSONA_CONTACT_POLICY) ?? DEFAULT_CONTACT_POLICY,
+  buildNarrative:
+    envText(process.env.PERSONA_BUILD_NARRATIVE) ?? DEFAULT_BUILD_NARRATIVE,
   seedQuestions: DEFAULT_SEED_QUESTIONS,
   socials: {
     blog: envUrl(process.env.PERSONA_BLOG_URL),
@@ -114,6 +129,7 @@ export function personaSystemPrompt(p: Persona = persona): string {
     ].join("\n"),
     `# Background\n${p.bio}`,
     `# Transferable cloud experience\n${p.transferability}`,
+    `# How this was built\n${p.buildNarrative}`,
     [
       "# Contact",
       p.contactPolicy,
