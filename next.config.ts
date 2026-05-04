@@ -47,6 +47,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  outputFileTracingIncludes: {
+    "/api/chat/**": [
+      "./node_modules/.pnpm/@myriaddreamin+typst-ts-*/node_modules/@myriaddreamin/typst-ts-*/pkg/*.wasm",
+    ],
+  },
   experimental: {
     prefetchInlining: true,
     cachedNavigations: true,
