@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
+import { isSessionOwner } from "@/lib/auth/owner";
 import { DEFAULT_K, searchCareerHistory } from "@/lib/rag/search";
 
 type SearchCareerHistoryProps = {
@@ -8,20 +9,6 @@ type SearchCareerHistoryProps = {
 };
 
 const MAX_K = 12;
-
-/**
- * Owner detection: when OWNER_EMAIL is set and matches the signed-in user's
- * email, the bot returns private chunks too. Anonymous/guest sessions and
- * other regular users only see public-tier chunks.
- */
-function isSessionOwner(session: Session): boolean {
-  const ownerEmail = process.env.OWNER_EMAIL?.trim().toLowerCase();
-  if (!ownerEmail) {
-    return false;
-  }
-  const sessionEmail = session.user?.email?.trim().toLowerCase();
-  return Boolean(sessionEmail) && sessionEmail === ownerEmail;
-}
 
 export const searchCareerHistoryTool = ({
   session,
