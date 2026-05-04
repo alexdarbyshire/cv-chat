@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
     : {}),
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
+    CV_CHAT_SHOW_MODEL_PICKER: process.env.CV_CHAT_SHOW_MODEL_PICKER ?? "0",
   },
   ...(allowedDevOrigins?.length ? { allowedDevOrigins } : {}),
   cacheComponents: true,
