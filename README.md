@@ -19,6 +19,43 @@ It's a more honest interface to a body of work than a one-page summary can be.
 - **Public access without login**: anonymous visitors get N free messages/day (IP rate-limit). Google sign-in raises the cap.
 - **Corpus stays private**: ingestion script reads from a separate, private repo and emits embeddings — career history is never committed here.
 
+## How this was built
+
+A lot of this repo wasn't typed by me. It was written by AI workers running on a small home setup, and the setup itself is worth describing — partly because it's the differentiator between this and the original (one late-night Claude session in 2025), and partly so anyone forking can see the moving parts if they want to follow the same pattern.
+
+```mermaid
+flowchart LR
+    phone["Phone<br/>Claude Code remote · Termux SSH"]
+
+    subgraph vm["claude-agent VM (Proxmox)"]
+        butler["butler agent"]
+        tilt["Tilt"]
+        subgraph kind["Kind cluster"]
+            workers["worker pods<br/>Claude Code"]
+        end
+        subgraph mounts["hostPath mounts"]
+            repos["~/git/&lt;name&gt;"]
+            state["~/butler-state<br/>inbox + ~/.claude"]
+        end
+    end
+
+    vercel["Vercel"]
+
+    phone -->|SSH / remote| vm
+    tilt -->|provisions| workers
+    kind <-->|read/write| mounts
+    workers -.->|butler-tell| butler
+    butler -->|deploy| vercel
+```
+
+The cluster runs on a `claude-agent` VM (one of two Proxmox guests on a small home server). Workers are pods in a Kind cluster on that VM; each pod is a long-running Claude Code session. A separate **butler agent** on the same host holds the privileges the workers don't — a GitHub PAT, the Vercel CLI, the Anthropic OAuth tokens. Workers commit locally; the butler pushes branches, opens PRs, runs reviews, and merges. For diagnostic-logging commits I'd rather not put through PR review, the butler also deploys straight to prod via `vercel deploy --prod`, then merges (or doesn't) afterwards.
+
+`workers.yaml` is the source of truth for the cluster. Add an entry, save, and Tilt provisions the namespace, secrets, NetworkPolicy, and Deployment automatically — no `kubectl apply`, no shell script. The same loop tears workers down when their entry is removed.
+
+hostPath mounts wire the host filesystem into each pod: repos at `~/git/<name>` so workers operate on a real working tree, and `~/butler-state/` for shared state. The state mount carries two important things — a worker→butler inbox (workers run `butler-tell "subject" "body"` and a markdown file lands in the butler's queue) and a per-worker `~/.claude/` so Claude Code sessions resume across pod restarts.
+
+The detail worth flagging: large parts of the polish phase weren't driven from a laptop. They were driven from a phone — sometimes via Claude Code's remote-control flow, sometimes via Termux SSH'd into the host attaching to the zellij session running on the VM. The PRs that landed in this repo over the last week were reviewed and merged from a phone. The original `interactive-cv-bot` was built agentically over a weekend on the couch; the do-over is being built agentically from a phone.
+
 ## Use it for yourself
 
 1. Fork this repo
