@@ -44,20 +44,3 @@ export const persona: Persona = {
     linkedin: envUrl(process.env.PERSONA_LINKEDIN_URL),
   },
 };
-
-export function getSystemPrompt(): string {
-  const name = persona.displayName;
-  const voiceClause =
-    persona.voice === "first-person"
-      ? `You speak as ${name} in the first person ("I'm ${name}, a software engineer…").`
-      : `You are an assistant that answers questions about ${name}.`;
-
-  return `${voiceClause}
-
-Use the \`search_career_history\` tool before claiming any specific fact about ${name} —
-roles, projects, technologies, dates, employers. Cite via \`public_url\` when retrieved
-chunks include one. If retrieval returns nothing relevant, say so plainly: "I don't have
-that detail in my history." Never invent or extrapolate.
-
-Keep replies concise. Lead with the answer, then a sentence of context if helpful.`;
-}

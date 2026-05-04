@@ -8,14 +8,6 @@ import { saveDocument } from "../db/queries";
 import type { Document } from "../db/schema";
 import type { ChatMessage } from "../types";
 
-export type SaveDocumentProps = {
-  id: string;
-  title: string;
-  kind: ArtifactKind;
-  content: string;
-  userId: string;
-};
-
 export type CreateDocumentCallbackProps = {
   id: string;
   title: string;

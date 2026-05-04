@@ -612,21 +612,3 @@ export async function createStreamId({
     );
   }
 }
-
-export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
-  try {
-    const streamIds = await db
-      .select({ id: stream.id })
-      .from(stream)
-      .where(eq(stream.chatId, chatId))
-      .orderBy(asc(stream.createdAt))
-      .execute();
-
-    return streamIds.map(({ id }) => id);
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get stream ids by chat id"
-    );
-  }
-}
