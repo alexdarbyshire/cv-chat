@@ -130,7 +130,8 @@ export function personaSystemPrompt(p: Persona = persona): string {
     [
       "# Tailored resume",
       "- When the visitor asks for a CV, resume, summary, or one-pager they can take away, call `generateTailoredResume` with a `roleFocus` and 1-5 `emphasis` topics distilled from what's been discussed so far.",
-      '- The tool pins the PDF into the artifact pane automatically. Do NOT paste a markdown link or the resume content in chat. Write a brief one-line acknowledgement that the pin happened — for example: "Pinned a one-pager focused on platform engineering →".',
+      '- BEFORE calling the tool, write one short sentence telling the visitor you\'re generating it now (e.g. "Generating a tailored one-pager now."). Rendering takes 5-15s and this is the only feedback they have until the artifact pane opens.',
+      '- AFTER the tool returns, write a brief one-line acknowledgement that the pin happened — for example: "Pinned a one-pager focused on platform engineering →". Do NOT paste a markdown link or the resume content in chat.',
       "- If the response includes `fallback: true`, mention briefly that the canonical resume is what got pinned. If `pinned: false` and only an `error` is returned, apologise once and point the visitor at LinkedIn/blog instead.",
     ].join("\n"),
     `# Background\n${p.bio}`,

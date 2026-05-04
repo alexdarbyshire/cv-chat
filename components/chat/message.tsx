@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import type { ReactNode } from "react";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -295,6 +296,91 @@ const PurePreviewMessage = ({
                   )
                 }
               />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
+    if (type === "tool-generateTailoredResume") {
+      const { toolCallId, state } = part;
+
+      let outputNode: ReactNode = null;
+      if (state === "output-available") {
+        const output = part.output as {
+          headline?: string;
+          cached?: boolean;
+          fallback?: boolean;
+          pinned?: boolean;
+          error?: string;
+        };
+        if (output.pinned && output.fallback) {
+          outputNode = (
+            <div className="text-muted-foreground text-xs">
+              Tailored generation unavailable — pinned the canonical resume.
+            </div>
+          );
+        } else if (output.pinned) {
+          outputNode = (
+            <div className="text-muted-foreground text-xs">
+              Pinned tailored resume to the artifact pane.
+              {output.headline ? ` (${output.headline})` : null}
+            </div>
+          );
+        } else {
+          outputNode = (
+            <div className="text-destructive text-xs">
+              {output.error ?? "Could not generate the tailored resume."}
+            </div>
+          );
+        }
+      }
+
+      return (
+        <Tool className="w-[min(100%,450px)]" key={toolCallId}>
+          <ToolHeader state={state} type="tool-generateTailoredResume" />
+          <ToolContent>
+            {(state === "input-available" || state === "output-available") && (
+              <ToolInput input={part.input} />
+            )}
+            {outputNode && (
+              <ToolOutput errorText={undefined} output={outputNode} />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
+    if (type === "tool-searchCareerHistory") {
+      const { toolCallId, state } = part;
+
+      let outputNode: ReactNode = null;
+      if (state === "output-available") {
+        const output = part.output as {
+          count?: number;
+          chunks?: { headingPath?: string; sourcePath?: string }[];
+        };
+        const count = output.count ?? 0;
+        const first = output.chunks?.[0];
+        const firstLabel = first?.headingPath ?? first?.sourcePath;
+        outputNode = (
+          <div className="text-muted-foreground text-xs">
+            {count === 0
+              ? "No matching chunks."
+              : `${count} chunk${count === 1 ? "" : "s"}${firstLabel ? ` — top match: ${firstLabel}` : ""}.`}
+          </div>
+        );
+      }
+
+      return (
+        <Tool className="w-[min(100%,450px)]" key={toolCallId}>
+          <ToolHeader state={state} type="tool-searchCareerHistory" />
+          <ToolContent>
+            {(state === "input-available" || state === "output-available") && (
+              <ToolInput input={part.input} />
+            )}
+            {outputNode && (
+              <ToolOutput errorText={undefined} output={outputNode} />
             )}
           </ToolContent>
         </Tool>
