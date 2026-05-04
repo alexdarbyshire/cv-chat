@@ -92,9 +92,9 @@ export async function POST(request: Request) {
       ? selectedChatModel
       : DEFAULT_CHAT_MODEL;
 
-    await checkIpRateLimit(ipAddress(request));
-
     const userType: UserType = session.user.type;
+
+    await checkIpRateLimit(ipAddress(request), userType);
 
     const messageCount = await getMessageCountByUserId({
       id: session.user.id,
@@ -102,7 +102,16 @@ export async function POST(request: Request) {
     });
 
     if (messageCount > entitlementsByUserType[userType].maxMessagesPerHour) {
-      return new ChatbotError("rate_limit:chat").toResponse();
+      return new ChatbotError(
+        "rate_limit:chat",
+        undefined,
+        userType === "guest"
+          ? {
+              label: "Continue with Google",
+              href: "/api/auth/signin/google?callbackUrl=/",
+            }
+          : undefined
+      ).toResponse();
     }
 
     const isToolApprovalFlow = Boolean(messages);

@@ -35,12 +35,23 @@ export const visibilityBySurface: Record<Surface, ErrorVisibility> = {
   activate_gateway: "response",
 };
 
+/**
+ * Optional call-to-action surfaced alongside the error message. The chat
+ * UI renders it as a button next to the toast — used today by the guest
+ * rate-limit path to suggest a Google sign-in (SPEC §3.2).
+ */
+export type ErrorCta = {
+  label: string;
+  href: string;
+};
+
 export class ChatbotError extends Error {
   type: ErrorType;
   surface: Surface;
   statusCode: number;
+  cta?: ErrorCta;
 
-  constructor(errorCode: ErrorCode, cause?: string) {
+  constructor(errorCode: ErrorCode, cause?: string, cta?: ErrorCta) {
     super();
 
     const [type, surface] = errorCode.split(":");
@@ -50,13 +61,14 @@ export class ChatbotError extends Error {
     this.surface = surface as Surface;
     this.message = getMessageByErrorCode(errorCode);
     this.statusCode = getStatusCodeByType(this.type);
+    this.cta = cta;
   }
 
   toResponse() {
     const code: ErrorCode = `${this.type}:${this.surface}`;
     const visibility = visibilityBySurface[this.surface];
 
-    const { message, cause, statusCode } = this;
+    const { message, cause, statusCode, cta } = this;
 
     if (visibility === "log") {
       console.error({
@@ -71,7 +83,7 @@ export class ChatbotError extends Error {
       );
     }
 
-    return Response.json({ code, message, cause }, { status: statusCode });
+    return Response.json({ code, message, cause, cta }, { status: statusCode });
   }
 }
 

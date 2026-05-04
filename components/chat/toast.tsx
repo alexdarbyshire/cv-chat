@@ -11,13 +11,21 @@ const iconsByType: Record<"success" | "error", ReactNode> = {
 };
 
 export function toast(props: Omit<ToastProps, "id">) {
-  return sonnerToast.custom((id) => (
-    <Toast description={props.description} id={id} type={props.type} />
-  ));
+  return sonnerToast.custom(
+    (id) => (
+      <Toast
+        cta={props.cta}
+        description={props.description}
+        id={id}
+        type={props.type}
+      />
+    ),
+    { duration: props.cta ? 12_000 : undefined }
+  );
 }
 
 function Toast(props: ToastProps) {
-  const { id, type, description } = props;
+  const { id, type, description, cta } = props;
 
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [multiLine, setMultiLine] = useState(false);
@@ -45,24 +53,39 @@ function Toast(props: ToastProps) {
     <div className="flex toast-mobile:w-[356px] w-full justify-center">
       <div
         className={cn(
-          "flex toast-mobile:w-fit w-full flex-row gap-3 rounded-lg bg-card border border-border/50 shadow-[var(--shadow-float)] p-3",
-          multiLine ? "items-start" : "items-center"
+          "flex toast-mobile:w-fit w-full flex-col gap-2 rounded-lg bg-card border border-border/50 shadow-[var(--shadow-float)] p-3"
         )}
         data-testid="toast"
         key={id}
       >
         <div
           className={cn(
-            "data-[type=error]:text-red-600 data-[type=success]:text-green-600",
-            { "pt-1": multiLine }
+            "flex flex-row gap-3",
+            multiLine ? "items-start" : "items-center"
           )}
-          data-type={type}
         >
-          {iconsByType[type]}
+          <div
+            className={cn(
+              "data-[type=error]:text-red-600 data-[type=success]:text-green-600",
+              { "pt-1": multiLine }
+            )}
+            data-type={type}
+          >
+            {iconsByType[type]}
+          </div>
+          <div className="text-foreground text-sm" ref={descriptionRef}>
+            {description}
+          </div>
         </div>
-        <div className="text-sm text-foreground" ref={descriptionRef}>
-          {description}
-        </div>
+        {cta ? (
+          <a
+            className="self-start rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-xs transition-colors hover:bg-primary/90"
+            data-testid="toast-cta"
+            href={cta.href}
+          >
+            {cta.label}
+          </a>
+        ) : null}
       </div>
     </div>
   );
@@ -72,4 +95,5 @@ type ToastProps = {
   id: string | number;
   type: "success" | "error";
   description: string;
+  cta?: { label: string; href: string };
 };
