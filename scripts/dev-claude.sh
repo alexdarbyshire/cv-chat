@@ -7,6 +7,13 @@ set -e
 LOG=/tmp/dev.log
 PIDFILE=/tmp/dev.pid
 
+# Sandbox image leaves /home/node/.npm root-owned, so `npx` (used by the
+# next-devtools MCP server) hits EACCES on the default cache. Redirect npm's
+# cache to a node-writable path for this session and any subprocesses claude
+# spawns.
+export NPM_CONFIG_CACHE="$HOME/.cache/npm"
+mkdir -p "$NPM_CONFIG_CACHE"
+
 # Clean up any prior dev server (crashed previous session, etc.)
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   kill "$(cat "$PIDFILE")" 2>/dev/null || true
