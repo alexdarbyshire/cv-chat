@@ -43,10 +43,11 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
 
-  /* Configure global timeout for each test */
-  timeout: 240 * 1000, // 120 seconds
+  /* Default Playwright timeout. Tests that legitimately need longer
+     (chat tests waiting on LLM latency) override with test.setTimeout. */
+  timeout: 30 * 1000,
   expect: {
-    timeout: 240 * 1000,
+    timeout: 10 * 1000,
   },
 
   /* Configure projects */

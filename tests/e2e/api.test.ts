@@ -5,9 +5,14 @@ const ERROR_TEXT_REGEX = /error|failed|trouble/i;
 
 test.describe("Chat API Integration", () => {
   test("sends message and receives AI response", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto("/");
 
     const input = page.getByTestId("multimodal-input");
+    // First navigation after dev-server boot can take 30s+ to hydrate
+    // (Auth.js guest cookie + chat-init plumbing); the textarea exists
+    // but stays disabled until then. See playwright.config.ts comment.
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Hello");
     await page.getByTestId("send-button").click();
 
@@ -21,9 +26,11 @@ test.describe("Chat API Integration", () => {
   });
 
   test("redirects to /chat/:id after sending message", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto("/");
 
     const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test redirect");
     await page.getByTestId("send-button").click();
 
@@ -32,9 +39,11 @@ test.describe("Chat API Integration", () => {
   });
 
   test("clears input after sending", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto("/");
 
     const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test message");
     await page.getByTestId("send-button").click();
 
@@ -43,8 +52,10 @@ test.describe("Chat API Integration", () => {
   });
 
   test("shows stop button during generation", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto("/");
     const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test");
     await page.getByTestId("send-button").click();
 
@@ -56,6 +67,7 @@ test.describe("Chat API Integration", () => {
 
 test.describe("Chat Error Handling", () => {
   test("handles API error gracefully", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.route("**/api/chat", async (route) => {
       await route.fulfill({
         status: 500,
@@ -66,6 +78,7 @@ test.describe("Chat Error Handling", () => {
 
     await page.goto("/");
     const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
     await input.fill("Test error");
     await page.getByTestId("send-button").click();
 

@@ -1,0 +1,76 @@
+name: gates
+
+# Triggers chosen per SPEC §7 Phase 1.5: pull_request runs forks safely (the
+# default GITHUB_TOKEN is read-only, no secrets exposed to forked code), push
+# to main is the post-merge sanity check. Never pull_request_target — that
+# would expose secrets to forked PRs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to a branch (PR sync, force-push, etc.) cancels the previous
+# in-flight run. Saves runner minutes; the stale run can never affect merge
+# eligibility.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Playwright tests touch the auth/persistence boundary so the e2e step
+    # needs the real env. Vitest, typecheck, knip, and ultracite don't —
+    # they fail fast before the e2e step ever sees these. Configure the
+    # corresponding repo secrets so playwright can sign in a guest.
+    env:
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # --with-deps installs the system libraries chromium needs on Ubuntu
+      # runners. Contributors running e2e locally use plain
+      # `pnpm exec playwright install chromium` (no --with-deps, no sudo).
+      - name: Install Playwright Chromium with system deps
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `pnpm gates` is the cheap gates: typecheck → ultracite → knip →
+      # vitest. Same script contributors run locally to reproduce CI
+      # failures fast, without needing playwright browsers on their
+      # laptop. (Named `gates`, not `ci`, because pnpm reserves `ci` as
+      # a built-in command — `pnpm ci` returns ERR_PNPM_CI_NOT_IMPLEMENTED.)
+      - name: Run cheap gates
+        run: pnpm gates
+
+      - name: Run Playwright e2e
+        run: pnpm test
+
+      - name: Upload Playwright report
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
