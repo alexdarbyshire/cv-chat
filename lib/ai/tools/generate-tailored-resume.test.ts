@@ -122,7 +122,7 @@ describe("generateTailoredResumeTool", () => {
 
   afterEach(() => {
     if (originalOwner === undefined) {
-      delete process.env.OWNER_EMAIL;
+      Reflect.deleteProperty(process.env, "OWNER_EMAIL");
     } else {
       process.env.OWNER_EMAIL = originalOwner;
     }
