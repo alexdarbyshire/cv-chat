@@ -159,10 +159,12 @@ export const persona = {
   voice: "first-person",            // "first-person" | "assistant"
   systemPrompt: "...",              // template, gets corpus stats injected
   seedQuestions: [
-    "Generate a CV for an AI platform engineer role.",
-    "Tell me how this site was built.",
-    "What other projects has Alex got in the public domain?",
-    "What's Alex's experience with agents, MCPs, and the like?",
+    // Ordered shortest-first so the lead chip doesn't overflow on
+    // mobile. Set chosen to demo each tool the agent can call:
+    "How was this site built?",                  // no tool — BUILD_NARRATIVE
+    "What has Alex been up to lately?",          // getRecentActivity
+    "Generate a CV for an AI platform engineer.", // generateTailoredResume
+    "What's Alex done with agents and MCPs?",    // searchCareerHistory
   ],
   socials: { blog: "...", github: "...", linkedin: "..." },
 };
@@ -170,7 +172,7 @@ export const persona = {
 
 A fork edits this file (or env vars) and gets a different persona. No code changes.
 
-**Build-narrative content.** The seed question "Tell me how this site was built" presumes the bot can answer it accurately. Two options for surfacing that content:
+**Build-narrative content.** The seed question "How was this site built?" presumes the bot can answer it accurately. Two options for surfacing that content:
 
 1. **System prompt addendum** (preferred for v1): a `BUILD_NARRATIVE` constant in `theme/persona.ts` documenting the agentic stack — Claude Code workers in Kind pods orchestrated by a butler agent, Tilt for live reload of worker manifests, hostPath mounts for shared state, this repo as the example output. Injected into the system prompt under a `## How this was built` heading. Cheap, deterministic, no corpus changes.
 2. **Corpus chunk**: a `meta/build.md` ingested into pgvector. More flexible (the bot can cite it like any other source) but requires re-ingest on edits.
