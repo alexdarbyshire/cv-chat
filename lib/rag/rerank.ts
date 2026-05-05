@@ -10,29 +10,29 @@
  * experience" — embedding cosine pulls in both topics; rerank weights
  * what's actually relevant).
  *
- * Provider: Cohere Rerank v2 via direct HTTPS. The Vercel AI Gateway
- * brokers Cohere's LLMs and embeddings but not their rerank endpoint
- * (yet), so we hit `api.cohere.com/v2/rerank` directly. Configure with
- * `COHERE_API_KEY`; without a key the function falls through to a no-op
- * (returns hits in pgvector order). Same fallback on HTTP errors —
- * never error the request.
+ * Provider: AI Gateway via `@ai-sdk/gateway` brokers Cohere rerank as of
+ * AI SDK 6 (gateway ≥3.0.110). The same `AI_GATEWAY_API_KEY` that powers
+ * chat and embeddings covers rerank — one key, unified billing and
+ * observability. Default model: `cohere/rerank-v3.5`. Forks can pick
+ * another from `GatewayRerankingModelId` (cohere/rerank-v4-fast/-pro,
+ * voyage/rerank-2.5/-lite) by passing `model`.
  *
  * Mode toggle: `CV_CHAT_RERANK=on|off` (default `on`). The off path
- * doesn't make any HTTP call, so a fork that doesn't want to integrate
- * Cohere can ship with `CV_CHAT_RERANK=off` and pay zero rerank cost.
+ * skips the gateway call entirely, so a fork that doesn't want any
+ * rerank cost can ship with `CV_CHAT_RERANK=off`.
  */
 
+import { gateway, rerank } from "ai";
 import type { SearchHit } from "./search";
 
 export type RerankMode = "on" | "off";
 
-const COHERE_RERANK_URL = "https://api.cohere.com/v2/rerank";
-/** Cohere's flagship English-tuned rerank model as of 2025-11. */
-const COHERE_RERANK_MODEL = "rerank-v3.5";
+/** Default — Cohere's flagship English-tuned cross-encoder. */
+const DEFAULT_RERANK_MODEL = "cohere/rerank-v3.5";
 
 /**
  * 5s ceiling — generous for a single-doc rerank but not so long that a
- * Cohere blip stalls a chat request that has its own 60s budget. On
+ * gateway blip stalls a chat request that has its own 60s budget. On
  * timeout we fall through to pgvector order.
  */
 const RERANK_TIMEOUT_MS = 5000;
@@ -47,22 +47,19 @@ export type RerankOptions = {
   enabled?: boolean;
   /** Trim to this many hits after rerank. Defaults to all of `hits`. */
   topN?: number;
-  /** Override the Cohere model id (forks may pin to a specific version). */
+  /** Override the gateway rerank model id (default `cohere/rerank-v3.5`). */
   model?: string;
-};
-
-type CohereRerankResponse = {
-  results?: { index: number; relevance_score: number }[];
 };
 
 /**
  * Reorder `hits` by cross-encoder relevance to `query`. Optionally trim to
  * `topN` after reranking. Returns a new array; the original is untouched.
  *
- * The function never throws — auth failures, network errors, and a missing
- * `COHERE_API_KEY` all produce the no-rerank fallback (pgvector order
- * preserved, sliced to `topN` if provided). Each fallback emits a single
- * `[reranker] …` line to stderr so dev/prod logs surface the cause.
+ * The function never throws — gateway errors, timeouts, and the
+ * `CV_CHAT_RERANK=off` toggle all produce the no-rerank fallback
+ * (pgvector order preserved, sliced to `topN` if provided). Each
+ * fallback emits a single `[reranker] …` line to stderr so dev/prod
+ * logs surface the cause.
  */
 export async function rerankHits(
   query: string,
@@ -80,43 +77,21 @@ export async function rerankHits(
   if (hits.length === 0) {
     return [];
   }
-  const apiKey = process.env.COHERE_API_KEY?.trim();
-  if (!apiKey) {
-    console.warn(
-      "[reranker] no provider configured (COHERE_API_KEY unset), falling back to no-rerank"
-    );
-    return slice(hits);
-  }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), RERANK_TIMEOUT_MS);
   try {
-    const res = await fetch(COHERE_RERANK_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: opts.model ?? COHERE_RERANK_MODEL,
-        query,
-        documents: hits.map((h) => h.content),
-        top_n: topN ?? hits.length,
-      }),
-      signal: controller.signal,
+    const { ranking } = await rerank({
+      model: gateway.rerankingModel(opts.model ?? DEFAULT_RERANK_MODEL),
+      query,
+      documents: hits.map((h) => h.content),
+      topN: topN ?? hits.length,
+      abortSignal: AbortSignal.timeout(RERANK_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      throw new Error(`cohere rerank ${res.status}`);
-    }
-    const data = (await res.json()) as CohereRerankResponse;
-    if (!Array.isArray(data.results)) {
-      throw new Error("cohere rerank: malformed response (no results array)");
-    }
-    const reordered = data.results
-      .filter((r) => r.index >= 0 && r.index < hits.length)
+
+    const reordered = ranking
+      .filter((r) => r.originalIndex >= 0 && r.originalIndex < hits.length)
       .map((r) => ({
-        ...hits[r.index],
-        rerankScore: r.relevance_score,
+        ...hits[r.originalIndex],
+        rerankScore: r.score,
       }));
     return slice(reordered);
   } catch (error) {
@@ -124,7 +99,5 @@ export async function rerankHits(
       `[reranker] failed, falling back to no-rerank: ${error instanceof Error ? error.message : String(error)}`
     );
     return slice(hits);
-  } finally {
-    clearTimeout(timeout);
   }
 }

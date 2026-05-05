@@ -20,8 +20,21 @@ vi.mock("./embed", async (importOriginal) => {
   };
 });
 
+vi.mock("ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ai")>();
+  return {
+    ...actual,
+    rerank: vi.fn(),
+    gateway: {
+      ...actual.gateway,
+      rerankingModel: vi.fn((modelId: string) => ({ modelId })),
+    },
+  };
+});
+
 const { searchCareerHistory } = await import("./search");
 const { embedTexts, sha256 } = await import("./embed");
+const { rerank } = await import("ai");
 
 const VECTOR_LEN = 1536;
 const TEST_PREFIX = `__test__/search-${Date.now()}-${Math.random()}`;
@@ -118,24 +131,21 @@ describe("searchCareerHistory", () => {
     }
   });
 
-  it("rerank=on with a Cohere stub reorders hits and attaches rerankScore", async () => {
-    const originalKey = process.env.COHERE_API_KEY;
-    process.env.COHERE_API_KEY = "fake-test-key";
-    // Stub Cohere reverses the order so we can assert reranking ran.
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({
-            results: [
-              { index: 1, relevance_score: 0.9 },
-              { index: 0, relevance_score: 0.4 },
-            ],
-          }),
-          { status: 200 }
-        )
-      )
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it("rerank=on with a gateway stub reorders hits and attaches rerankScore", async () => {
+    // Stub the gateway-brokered rerank: reverse the order so we can assert
+    // reranking actually ran (vs. just falling through to pgvector).
+    vi.mocked(rerank).mockImplementation(({ documents }) => {
+      const docs = documents as string[];
+      const ranking = [
+        { originalIndex: 1, score: 0.9, document: docs[1] },
+        { originalIndex: 0, score: 0.4, document: docs[0] },
+      ];
+      return Promise.resolve({
+        originalDocuments: docs,
+        rerankedDocuments: ranking.map((r) => r.document),
+        ranking,
+      } as Awaited<ReturnType<typeof rerank>>);
+    });
 
     try {
       const hits = await searchCareerHistory("anything", {
@@ -145,17 +155,12 @@ describe("searchCareerHistory", () => {
         rerankTopN: 2,
       });
 
-      expect(fetchMock).toHaveBeenCalled();
+      expect(rerank).toHaveBeenCalled();
       expect(hits).toHaveLength(2);
       expect(hits[0].rerankScore).toBe(0.9);
       expect(hits[1].rerankScore).toBe(0.4);
     } finally {
-      vi.unstubAllGlobals();
-      if (originalKey === undefined) {
-        Reflect.deleteProperty(process.env, "COHERE_API_KEY");
-      } else {
-        process.env.COHERE_API_KEY = originalKey;
-      }
+      vi.mocked(rerank).mockReset();
     }
   });
 });
