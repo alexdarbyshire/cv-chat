@@ -110,4 +110,52 @@ describe("searchCareerHistory", () => {
     expect(publicHit?.headingPath).toBe("Public > Section");
     expect(publicHit?.publicUrl).toBe("https://example.test/public");
   });
+
+  it("rerank=off (default in tests) leaves hits without a rerankScore", async () => {
+    const hits = await searchCareerHistory("anything", { k: 10 });
+    for (const h of hits) {
+      expect(h.rerankScore).toBeUndefined();
+    }
+  });
+
+  it("rerank=on with a Cohere stub reorders hits and attaches rerankScore", async () => {
+    const originalKey = process.env.COHERE_API_KEY;
+    process.env.COHERE_API_KEY = "fake-test-key";
+    // Stub Cohere reverses the order so we can assert reranking ran.
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            results: [
+              { index: 1, relevance_score: 0.9 },
+              { index: 0, relevance_score: 0.4 },
+            ],
+          }),
+          { status: 200 }
+        )
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const hits = await searchCareerHistory("anything", {
+        k: 10,
+        isOwner: true,
+        rerank: true,
+        rerankTopN: 2,
+      });
+
+      expect(fetchMock).toHaveBeenCalled();
+      expect(hits).toHaveLength(2);
+      expect(hits[0].rerankScore).toBe(0.9);
+      expect(hits[1].rerankScore).toBe(0.4);
+    } finally {
+      vi.unstubAllGlobals();
+      if (originalKey === undefined) {
+        Reflect.deleteProperty(process.env, "COHERE_API_KEY");
+      } else {
+        process.env.COHERE_API_KEY = originalKey;
+      }
+    }
+  });
 });

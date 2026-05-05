@@ -9,6 +9,15 @@ type SearchCareerHistoryProps = {
 };
 
 const MAX_K = 12;
+/**
+ * SPEC §7: rerank trims the pgvector candidate set down to the top-3
+ * cross-encoder matches before the chunks reach the LLM. Smaller, sharper
+ * context wins on overlapping-topic questions ("Azure AND team
+ * leadership"). When `CV_CHAT_RERANK=off` (or the rerank call falls
+ * through), the search returns up to `k` hits in pgvector order — the
+ * trim is rerank-scoped, not unconditional.
+ */
+const CHAT_RERANK_TOP_N = 3;
 
 export const searchCareerHistoryTool = ({
   session,
@@ -37,6 +46,7 @@ export const searchCareerHistoryTool = ({
       const hits = await searchCareerHistory(query, {
         k,
         isOwner: isSessionOwner(session),
+        rerankTopN: CHAT_RERANK_TOP_N,
       });
 
       return {
