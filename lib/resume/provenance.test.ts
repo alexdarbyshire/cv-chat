@@ -63,7 +63,7 @@ const validContent: ResumeContent = {
 };
 
 afterEach(() => {
-  delete process.env.RESUME_PROVENANCE_MODE;
+  Reflect.deleteProperty(process.env, "RESUME_PROVENANCE_MODE");
   vi.restoreAllMocks();
 });
 
@@ -219,7 +219,7 @@ describe("inventionFeedback", () => {
 
 describe("provenanceMode", () => {
   it("defaults to lenient", () => {
-    delete process.env.RESUME_PROVENANCE_MODE;
+    Reflect.deleteProperty(process.env, "RESUME_PROVENANCE_MODE");
     expect(provenanceMode()).toBe("lenient");
   });
 

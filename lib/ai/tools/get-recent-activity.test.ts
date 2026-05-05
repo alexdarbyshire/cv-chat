@@ -130,7 +130,7 @@ describe("blogFeedUrlFrom", () => {
         "https://x.example/feed"
       );
     } finally {
-      delete process.env.PERSONA_BLOG_FEED_URL;
+      Reflect.deleteProperty(process.env, "PERSONA_BLOG_FEED_URL");
     }
   });
 });

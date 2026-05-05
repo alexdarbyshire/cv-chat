@@ -5,12 +5,12 @@ describe("staticFallbackUrl", () => {
   const original = process.env.STATIC_RESUME_URL;
 
   beforeEach(() => {
-    delete process.env.STATIC_RESUME_URL;
+    Reflect.deleteProperty(process.env, "STATIC_RESUME_URL");
   });
 
   afterEach(() => {
     if (original === undefined) {
-      delete process.env.STATIC_RESUME_URL;
+      Reflect.deleteProperty(process.env, "STATIC_RESUME_URL");
     } else {
       process.env.STATIC_RESUME_URL = original;
     }

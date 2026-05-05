@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { embedding as embeddingTable } from "@/lib/db/schema";
 import { embedTexts } from "./embed";
+import { rerankHits } from "./rerank";
 
 // Lazy-init mirrors lib/rag/embed.ts: read POSTGRES_URL on first use so
 // callers (Next routes, vitest) can load env before the connection opens.
@@ -19,21 +20,32 @@ export type SearchHit = {
   headingPath?: string;
   sourcePath: string;
   publicUrl?: string;
+  /** pgvector cosine distance (lower = closer). */
   distance: number;
+  /** Cross-encoder relevance score (higher = more relevant). Set when the rerank pass runs. */
+  rerankScore?: number;
 };
 
 export type SearchOptions = {
+  /** pgvector candidate count (also the upper bound on returned hits). */
   k?: number;
   /** When true, include private chunks. Otherwise restrict to public=true. */
   isOwner?: boolean;
+  /** Override `CV_CHAT_RERANK`; pass `false` to skip the rerank pass for this call. */
+  rerank?: boolean;
+  /** Trim to this many hits after rerank. Defaults to all of `k`. */
+  rerankTopN?: number;
 };
 
 export const DEFAULT_K = 6;
 
 /**
- * kNN over the Embedding table by cosine distance (pgvector `<=>`). Returns
- * the top-k nearest chunks the requester is allowed to see — public chunks
- * always, plus private when `isOwner` is true.
+ * kNN over the Embedding table by cosine distance (pgvector `<=>`), then a
+ * cross-encoder rerank pass (SPEC §7) when enabled. Returns the top-k
+ * nearest chunks the requester is allowed to see — public chunks always,
+ * plus private when `isOwner` is true. The chat tool sets `rerankTopN: 3`
+ * to compress the candidate set per SPEC; the resume pipeline keeps the
+ * default (rerank reorders all `k` without trimming).
  */
 export async function searchCareerHistory(
   query: string,
@@ -69,11 +81,16 @@ export async function searchCareerHistory(
 
   const rows = await filtered.orderBy(distance).limit(k);
 
-  return rows.map((row) => ({
+  const candidates: SearchHit[] = rows.map((row) => ({
     content: row.content,
     headingPath: row.metadata.title,
     sourcePath: row.sourcePath,
     publicUrl: row.metadata.publicUrl,
     distance: row.distance,
   }));
+
+  return rerankHits(trimmed, candidates, {
+    enabled: opts.rerank,
+    topN: opts.rerankTopN,
+  });
 }
