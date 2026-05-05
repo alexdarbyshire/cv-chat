@@ -57,6 +57,7 @@ export const searchCareerHistoryTool = ({
           headingPath: hit.headingPath,
           sourcePath: hit.sourcePath,
           publicUrl: hit.publicUrl,
+          public: hit.public,
         })),
       };
     },

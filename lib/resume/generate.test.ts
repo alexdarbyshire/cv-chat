@@ -31,6 +31,7 @@ const fakeHits: SearchHit[] = [
     headingPath: "Career > Platform > Lead",
     sourcePath: "Project_Portfolio.md",
     publicUrl: "https://example.test/portfolio",
+    public: true,
     distance: 0.21,
   },
   {
@@ -38,6 +39,7 @@ const fakeHits: SearchHit[] = [
     headingPath: "Career > Build",
     sourcePath: "all-blog-posts.md",
     publicUrl: "https://example.test/blog",
+    public: true,
     distance: 0.34,
   },
 ];

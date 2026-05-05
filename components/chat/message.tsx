@@ -13,6 +13,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "../ai-elements/tool";
+import { CitationStrip } from "./citation-strip";
 import { useDataStream } from "./data-stream-provider";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
@@ -433,6 +434,10 @@ const PurePreviewMessage = ({
     />
   );
 
+  const citations = isAssistant && !isThinking && (
+    <CitationStrip parts={message.parts} />
+  );
+
   const content = isThinking ? (
     <div className="flex h-[calc(13px*1.65)] items-center text-[13px] leading-[1.65]">
       <Shimmer className="font-medium" duration={1}>
@@ -443,6 +448,7 @@ const PurePreviewMessage = ({
     <>
       {attachments}
       {parts}
+      {citations}
       {actions}
     </>
   );

@@ -44,6 +44,24 @@ export type CorpusConfig = {
   denyByDefault: boolean;
 };
 
+/**
+ * Host allowlist for the link-preview route (`/api/preview`, SPEC §3.1
+ * Rule 3). The route only fetches og: metadata for URLs whose host (with
+ * any leading `www.` stripped) matches an entry here, and rejects others
+ * with 404. Belt-and-braces against a future poisoned chunk redirecting
+ * preview fetches to internal URLs (a classic SSRF surface).
+ *
+ * Forks: keep this in sync with the hosts that appear in `files[].publicUrl`
+ * above. If a fork's corpus cites posts on Substack or a personal domain,
+ * add those hosts here. Subdomains are matched as suffixes (`linkedin.com`
+ * also matches `au.linkedin.com`).
+ */
+export const LINK_PREVIEW_ALLOWED_HOSTS: readonly string[] = [
+  "alexdarbyshire.com",
+  "github.com",
+  "linkedin.com",
+];
+
 export const corpusConfig: CorpusConfig = {
   denyByDefault: true,
   files: [

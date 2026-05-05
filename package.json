@@ -25,6 +25,7 @@
     "eval:warmth": "tsx scripts/warmth-eval.ts",
     "eval:resume": "tsx scripts/resume-eval.ts",
     "eval:rerank": "tsx scripts/rerank-eval.ts",
+    "screenshots:sprint9": "tsx scripts/sprint9-screenshots.ts",
     "gates": "pnpm typecheck && pnpm check && pnpm knip && pnpm test:unit",
     "prepare": "husky"
   },

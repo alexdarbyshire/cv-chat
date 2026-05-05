@@ -45,6 +45,40 @@ test.describe("Chat Page", () => {
   });
 });
 
+test.describe("Citations (SPEC §3.1)", () => {
+  test("renders a citation chip linking to an allowlisted host", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await page.goto("/");
+
+    const input = page.getByTestId("multimodal-input");
+    await expect(input).toBeEditable({ timeout: 60_000 });
+    // Phrasing chosen so the agent calls searchCareerHistory and surfaces
+    // chunks with a publicUrl (alexdarbyshire.com / linkedin.com).
+    await input.fill(
+      "Tell me about your Azure work and team-leadership experience."
+    );
+    const sendButton = page.getByTestId("send-button");
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+    await sendButton.click();
+
+    const strip = page.getByTestId("citation-strip").first();
+    await expect(strip).toBeVisible({ timeout: 90_000 });
+
+    const firstChip = strip.getByTestId("citation-chip").first();
+    await expect(firstChip).toBeVisible();
+
+    const href = await firstChip.getAttribute("href");
+    expect(href).toBeTruthy();
+    expect(href).toMatch(
+      /^https:\/\/(?:[\w-]+\.)?(?:alexdarbyshire\.com|github\.com|linkedin\.com)\b/
+    );
+    await expect(firstChip).toHaveAttribute("target", "_blank");
+    await expect(firstChip).toHaveAttribute("rel", /noopener/);
+  });
+});
+
 test.describe("Chat Input Features", () => {
   test("input clears after sending", async ({ page }) => {
     await page.goto("/");

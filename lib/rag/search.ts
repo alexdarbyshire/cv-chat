@@ -20,6 +20,13 @@ export type SearchHit = {
   headingPath?: string;
   sourcePath: string;
   publicUrl?: string;
+  /**
+   * Visibility tier of the chunk's source file (corpus.config.ts). True for
+   * public-tier chunks, false for private (owner-only) chunks. Surfaced so
+   * the citation renderer can apply Rule 2 (defence-in-depth on top of the
+   * SQL `WHERE public = true OR isOwner` filter, SPEC §3.1).
+   */
+  public: boolean;
   /** pgvector cosine distance (lower = closer). */
   distance: number;
   /** Cross-encoder relevance score (higher = more relevant). Set when the rerank pass runs. */
@@ -71,6 +78,7 @@ export async function searchCareerHistory(
       content: embeddingTable.content,
       sourcePath: embeddingTable.sourcePath,
       metadata: embeddingTable.metadata,
+      public: embeddingTable.public,
       distance,
     })
     .from(embeddingTable);
@@ -86,6 +94,7 @@ export async function searchCareerHistory(
     headingPath: row.metadata.title,
     sourcePath: row.sourcePath,
     publicUrl: row.metadata.publicUrl,
+    public: row.public,
     distance: row.distance,
   }));
 
