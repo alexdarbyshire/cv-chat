@@ -8,6 +8,7 @@ import type { getWeather } from "./ai/tools/get-weather";
 import type { requestSuggestions } from "./ai/tools/request-suggestions";
 import type { searchCareerHistoryTool } from "./ai/tools/search-career-history";
 import type { updateDocument } from "./ai/tools/update-document";
+import type { updateTailoredResumeTool } from "./ai/tools/update-tailored-resume";
 import type { Suggestion } from "./db/schema";
 
 export const messageMetadataSchema = z.object({
@@ -28,6 +29,9 @@ type searchCareerHistoryUITool = InferUITool<
 type generateTailoredResumeUITool = InferUITool<
   ReturnType<typeof generateTailoredResumeTool>
 >;
+type updateTailoredResumeUITool = InferUITool<
+  ReturnType<typeof updateTailoredResumeTool>
+>;
 type getRecentActivityUITool = InferUITool<
   ReturnType<typeof getRecentActivityTool>
 >;
@@ -39,6 +43,7 @@ export type ChatTools = {
   requestSuggestions: requestSuggestionsTool;
   searchCareerHistory: searchCareerHistoryUITool;
   generateTailoredResume: generateTailoredResumeUITool;
+  updateTailoredResume: updateTailoredResumeUITool;
   getRecentActivity: getRecentActivityUITool;
 };
 

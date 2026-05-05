@@ -16,4 +16,5 @@ export const EMBEDDING_MODEL_ID =
 
 export const SEARCH_CAREER_HISTORY_TOOL = "searchCareerHistory";
 export const GENERATE_TAILORED_RESUME_TOOL = "generateTailoredResume";
+export const UPDATE_TAILORED_RESUME_TOOL = "updateTailoredResume";
 export const GET_RECENT_ACTIVITY_TOOL = "getRecentActivity";

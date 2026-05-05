@@ -147,16 +147,22 @@ describe("generateTailoredResumeTool", () => {
       emphasis: ["Kubernetes"],
     });
     const out = (await result) as {
+      artifactId?: string;
       headline?: string;
       cached?: boolean;
       pinned?: boolean;
     };
 
-    expect(out).toEqual({
+    expect(out).toMatchObject({
       headline: sampleJson.headline,
       cached: false,
       pinned: true,
     });
+    expect(out.artifactId).toEqual(expect.any(String));
+    // The generated id is also what gets pinned, so the LLM can pass it back
+    // into updateTailoredResume on a follow-up turn.
+    const idEvent = events.find((e) => e.type === "data-id");
+    expect(idEvent?.data).toBe(out.artifactId);
 
     expect(events.map((e) => e.type)).toEqual([
       "data-kind",
