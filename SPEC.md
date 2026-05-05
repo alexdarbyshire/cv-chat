@@ -13,7 +13,7 @@ A chatbot that answers questions about a person's body of work — projects, tec
 ### User stories
 
 - **Casual visitor, anonymous**: lands on the page, asks 1–3 questions ("have you worked on X?", "experience with Terraform?"), gets cited answers. No login required.
-- **Engaged visitor, signed in**: signs in with Google after hitting the anonymous limit; gets ~25 messages/day with persisted history.
+- **Engaged visitor, signed in**: signs in with Google after hitting the anonymous limit; gets a 5x higher per-hour cap (currently 20/hour vs guest's 4/hour — see §3.3) with persisted history.
 - **Curious peer**: follows a citation back to a specific blog post or public repo the bot referenced. Citations always link to public sources when possible.
 - **Forking dev**: clones the repo, points `CORPUS_PATH` at their own markdown, runs `pnpm ingest`, deploys.
 
@@ -126,11 +126,11 @@ Sliding window via `@upstash/ratelimit`:
 
 | Tier | Limit | Window | Key |
 |---|---|---|---|
-| guest (anonymous) | 3 messages | 24h | `ip:<ip>` |
-| google (signed in) | 25 messages | 24h | `user:<id>` |
+| guest (anonymous) | 4 messages | 1h | `user:guest-<id>` |
+| google (signed in) | 20 messages | 1h | `user:<id>` |
 | global circuit-breaker | 5000 messages | 24h | `global` |
 
-When hit: 429 with a friendly message. **Guest CTA: a single "Continue with Google" button** (per §3.2 — no email/password path exists or is offered). "Come back tomorrow" for signed-in.
+When hit: 429 with a friendly message. **Guest CTA: a single "Continue with Google" button** that points at `/login?callbackUrl=/` so Auth.js's CSRF-aware sign-in page handles the OAuth dance (per §3.2 — no email/password path exists or is offered). "Try again in an hour" for signed-in.
 
 ### 3.4 Theming
 
