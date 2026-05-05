@@ -60,6 +60,22 @@ export default defineConfig({
       },
     },
 
+    /**
+     * Smoke suite — end-to-end checks that depend on stochastic real-LLM
+     * behaviour (e.g. whether the model chooses to call a tool for a
+     * given query). Run as `pnpm test:smoke`. CI runs them
+     * informationally; a flake here doesn't block a merge. The
+     * deterministic logic these smokes wrap is covered by vitest cases
+     * under `lib/`.
+     */
+    {
+      name: "smoke",
+      testMatch: /smoke\/.*.test.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+      },
+    },
+
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'] },
