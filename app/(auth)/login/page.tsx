@@ -1,8 +1,5 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { useTransition } from "react";
+import { Suspense } from "react";
+import { GoogleSignInButton } from "@/components/auth/google-signin-button";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -13,13 +10,6 @@ import { Button } from "@/components/ui/button";
  * Google user id automatically.
  */
 export default function Page() {
-  const searchParams = useSearchParams();
-  const callbackUrl = (() => {
-    const raw = searchParams?.get("callbackUrl") ?? "/";
-    return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
-  })();
-  const [pending, startTransition] = useTransition();
-
   return (
     <>
       <h1 className="font-semibold text-2xl tracking-tight">
@@ -29,24 +19,22 @@ export default function Page() {
         We use your Google account email to lift the anonymous message limit. We
         never request more than email and profile scopes.
       </p>
-      <div className="flex flex-col gap-3">
-        <Button
-          className="w-full"
-          data-testid="continue-with-google"
-          disabled={pending}
-          onClick={() =>
-            startTransition(() => {
-              signIn("google", { callbackUrl });
-            })
-          }
-          size="lg"
-        >
-          {pending ? "Redirecting…" : "Continue with Google"}
-        </Button>
-        <p className="text-center text-[12px] text-muted-foreground/80">
-          You can keep using the chat as a guest if you'd rather not sign in.
-        </p>
-      </div>
+      <Suspense fallback={<SignInButtonFallback />}>
+        <GoogleSignInButton />
+      </Suspense>
     </>
+  );
+}
+
+function SignInButtonFallback() {
+  return (
+    <div className="flex flex-col gap-3">
+      <Button className="w-full" disabled size="lg">
+        Continue with Google
+      </Button>
+      <p className="text-center text-[12px] text-muted-foreground/80">
+        You can keep using the chat as a guest if you'd rather not sign in.
+      </p>
+    </div>
   );
 }
