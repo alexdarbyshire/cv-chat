@@ -98,6 +98,16 @@ We do not introduce LangChain, LlamaIndex, a separate vector DB, or any framewor
 
 **Generation**: system prompt sets first-person persona ("I'm Alex, a software engineer…"). Tells the model to call `search_career_history` before claiming any specific fact, and to cite via `public_url` when present. No retrieval = "I don't have that detail in my history" (no hallucination).
 
+**Citation rendering** (Phase 5 / Sprint 9). Citations attach to the assistant message that produced them — small inline cards or a footer chip strip — so the visitor can click through to the cited public source. Three rules govern visibility and trust:
+
+1. **Render visible citation cards only for chunks where `metadata.publicUrl` is set.** Chunks tagged `public: true` but anchored to a non-canonical source (e.g. the LinkedIn copy-paste file with no per-line URL) still inform the answer; they just don't render a clickable badge. Without this rule, the renderer would have to invent fallback labels and risk surfacing source-path filenames to visitors.
+
+2. **Owner-mode citations are gated on `isOwner` at the render layer.** When the deployment owner is signed in, retrieval can include private chunks. Their citations must render only for the owner — otherwise a scraping guest could infer private-chunk *existence* by signing in and observing UI differences. This is defence-in-depth on top of the SQL-level `WHERE public = true OR user_is_owner` filter.
+
+3. **Link-preview fetches use a host allowlist** of known publication targets (alexdarbyshire.com, github.com, linkedin.com, etc.). Belt-and-braces against a future poisoned chunk redirecting link-preview requests to internal URLs (a classic SSRF surface). Trivial today since the corpus is curated; cheap to add now and saves a hard-to-spot SSRF surface later. Forks override the allowlist in `corpus.config.ts` if their corpus draws from different hosts.
+
+These rules apply equally to citations rendered in chat answers and to provenance links surfaced anywhere else (e.g. a future "show retrieved chunks" debug surface).
+
 ### 3.2 Auth
 
 Two identities only: **anonymous guest** and **Google**. No email/password. Vercel chat-sdk template's existing patterns are the floor; we simplify, not extend.
