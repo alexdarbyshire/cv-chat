@@ -24,11 +24,17 @@ export type Persona = {
   };
 };
 
+// Ordered shortest-first so the lead chip never overflows on a narrow
+// mobile viewport. Set chosen to demo each tool the agent has access to:
+//   1. system-prompt narrative (no tool — BUILD_NARRATIVE)
+//   2. getRecentActivity (GitHub events + blog RSS)
+//   3. generateTailoredResume (the differentiator — pins a PDF artifact)
+//   4. searchCareerHistory (RAG over the corpus)
 const DEFAULT_SEED_QUESTIONS = [
-  "Generate a CV for an AI platform engineer role.",
-  "Tell me how this site was built.",
-  "What other projects has Alex got in the public domain?",
-  "What's Alex's experience with agents, MCPs, and the like?",
+  "How was this site built?",
+  "What has Alex been up to lately?",
+  "Generate a CV for an AI platform engineer.",
+  "What's Alex done with agents and MCPs?",
 ] as const;
 
 // Canonical-deployment defaults. Forks override via env vars (see .env.example).
