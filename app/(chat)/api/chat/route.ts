@@ -128,6 +128,10 @@ export async function POST(request: Request) {
       }
       messagesFromDb = await getMessagesByChatId({ id });
     } else if (message?.role === "user") {
+      console.log("[chat.savechat]", {
+        sessionUserId: session.user.id,
+        chatId: id,
+      });
       await saveChat({
         id,
         userId: session.user.id,

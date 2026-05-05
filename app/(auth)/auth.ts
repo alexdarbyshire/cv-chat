@@ -65,6 +65,10 @@ export const {
           name: profile.name,
           image: profile.picture,
         });
+        console.log("[auth.profile.google]", {
+          dbUserId: dbUser.id,
+          email: dbUser.email,
+        });
         return {
           id: dbUser.id,
           email: dbUser.email,
@@ -86,6 +90,10 @@ export const {
       credentials: {},
       async authorize() {
         const [guestUser] = await createGuestUser();
+        console.log("[auth.authorize.guest]", {
+          guestUserId: guestUser.id,
+          email: guestUser.email,
+        });
         return { ...guestUser, type: "guest" };
       },
     }),
@@ -126,6 +134,21 @@ export const {
             console.error("[auth] guest chat migration failed", error);
           }
         }
+
+        console.log("[auth.jwt]", {
+          hasUser: true,
+          userId: user.id,
+          userType: user.type,
+          wasGuest,
+          previousGuestId,
+          newTokenId: token.id,
+          newTokenType: token.type,
+        });
+      } else {
+        console.log("[auth.jwt.cookie-only]", {
+          tokenId: token.id,
+          tokenType: token.type,
+        });
       }
 
       return token;

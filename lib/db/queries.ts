@@ -78,6 +78,13 @@ export async function getOrCreateGoogleUser(args: {
       .returning({ id: user.id, email: user.email });
     return { id: created.id, email: created.email, created: true };
   } catch (_error) {
+    console.error("[getOrCreateGoogleUser] underlying error", {
+      email: args.email,
+      err:
+        _error instanceof Error
+          ? { name: _error.name, message: _error.message, stack: _error.stack }
+          : _error,
+    });
     throw new ChatbotError(
       "bad_request:database",
       "Failed to create Google user"
@@ -153,6 +160,14 @@ export async function saveChat({
       visibility,
     });
   } catch (_error) {
+    console.error("[saveChat] underlying error", {
+      userId,
+      chatId: id,
+      err:
+        _error instanceof Error
+          ? { name: _error.name, message: _error.message, stack: _error.stack }
+          : _error,
+    });
     throw new ChatbotError("bad_request:database", "Failed to save chat");
   }
 }
