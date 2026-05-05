@@ -12,7 +12,11 @@ export const Greeting = () => {
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.35, duration: 0.5, ease: ENTRANCE_EASE }}
       >
-        Welcome to {persona.displayName}'s chat
+        Welcome to{" "}
+        <span className="inline-block rounded-[var(--radius)] bg-primary px-3 py-1 font-bold text-primary-foreground">
+          {persona.displayName}
+        </span>
+        's chat
       </motion.div>
       <motion.div
         animate={{ opacity: 1, y: 0 }}
