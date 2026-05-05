@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         userType === "guest"
           ? {
               label: "Continue with Google",
-              href: "/api/auth/signin/google?callbackUrl=/",
+              href: "/login?callbackUrl=/",
             }
           : undefined
       ).toResponse();
