@@ -50,33 +50,27 @@ export const {
   ...authConfig,
   providers: [
     /**
-     * Google OAuth (SPEC §3.2). The `profile()` callback maps the Google
-     * account to a row in our local `User` table — without this, we'd be
-     * stuck in JWT-only mode and the rest of the app (which keys chats
-     * and votes by `User.id`) couldn't reference the signed-in user.
+     * Google OAuth (SPEC §3.2). The Google→DB upsert lives in the `jwt`
+     * callback below, NOT in `profile()`, because Auth.js v5 core overrides
+     * the user.id returned by `profile()` with `crypto.randomUUID()` before
+     * the jwt callback runs (see
+     * packages/core/src/lib/actions/callback/oauth/callback.ts ~L204; tracked
+     * in https://github.com/nextauthjs/next-auth/issues/8377). Resolving the
+     * DB user here would therefore set a value the framework discards. We
+     * keep `profile()` to a minimal id/email/name/image shape and re-resolve
+     * the persisted User row when we own the token.
      */
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
       authorization: { params: { scope: "openid email profile" } },
-      profile: async (profile) => {
-        const dbUser = await getOrCreateGoogleUser({
-          email: profile.email,
-          name: profile.name,
-          image: profile.picture,
-        });
-        console.log("[auth.profile.google]", {
-          dbUserId: dbUser.id,
-          email: dbUser.email,
-        });
-        return {
-          id: dbUser.id,
-          email: dbUser.email,
-          name: profile.name ?? dbUser.email,
-          image: profile.picture ?? null,
-          type: "regular",
-        };
-      },
+      profile: (profile) => ({
+        id: profile.sub,
+        email: profile.email,
+        name: profile.name ?? profile.email,
+        image: profile.picture ?? null,
+        type: "regular",
+      }),
     }),
     /**
      * Guest sessions (SPEC §3.2). Signed cookie, no password — created on
@@ -90,35 +84,53 @@ export const {
       credentials: {},
       async authorize() {
         const [guestUser] = await createGuestUser();
-        console.log("[auth.authorize.guest]", {
-          guestUserId: guestUser.id,
-          email: guestUser.email,
-        });
         return { ...guestUser, type: "guest" };
       },
     }),
   ],
   callbacks: {
     /**
-     * Account linking (SPEC §3.2): the JWT callback fires once per sign-in
-     * with the previous token still in scope. When a guest signs in with
-     * Google we detect the guest→regular transition, migrate the guest's
-     * chats to the new Google user id, and then overwrite the token so
-     * subsequent requests see the regular identity.
+     * Sets `token.id` and `token.type` on first sign-in.
+     *
+     * Google: re-resolve the `User` row here (not in `profile()`) because
+     * Auth.js v5 core overrides `user.id` with a random UUID before this
+     * callback runs — any id we set in `profile()` is discarded. We use
+     * `account.provider === "google"` as the discriminator so the
+     * Credentials path stays untouched.
+     *
+     * Credentials/guest: the `user.id` returned by `authorize()` reaches us
+     * intact, so we just copy it.
+     *
+     * Account linking (SPEC §3.2): when the previous token was a guest and
+     * the new token is regular, we migrate the guest's chats to the new
+     * Google user id once. Idempotent if it ran already.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         const wasGuest = token.type === "guest";
         const previousGuestId = wasGuest ? token.id : null;
 
-        token.id = user.id as string;
-        token.type = user.type;
+        if (account?.provider === "google") {
+          if (!profile?.email) {
+            throw new Error("google sign-in: profile.email missing");
+          }
+          const dbUser = await getOrCreateGoogleUser({
+            email: profile.email,
+            name: typeof profile.name === "string" ? profile.name : null,
+            image: typeof profile.picture === "string" ? profile.picture : null,
+          });
+          token.id = dbUser.id;
+          token.type = "regular";
+        } else {
+          token.id = user.id as string;
+          token.type = user.type;
+        }
 
         if (
           wasGuest &&
           previousGuestId &&
           previousGuestId !== token.id &&
-          user.type === "regular"
+          token.type === "regular"
         ) {
           try {
             const { chatsMoved } = await migrateGuestChatsToUser({
@@ -134,21 +146,6 @@ export const {
             console.error("[auth] guest chat migration failed", error);
           }
         }
-
-        console.log("[auth.jwt]", {
-          hasUser: true,
-          userId: user.id,
-          userType: user.type,
-          wasGuest,
-          previousGuestId,
-          newTokenId: token.id,
-          newTokenType: token.type,
-        });
-      } else {
-        console.log("[auth.jwt.cookie-only]", {
-          tokenId: token.id,
-          tokenType: token.type,
-        });
       }
 
       return token;
