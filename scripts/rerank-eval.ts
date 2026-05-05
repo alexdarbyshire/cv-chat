@@ -3,11 +3,11 @@
  *
  * For each fixture in `tests/rag/rerank-eval.fixtures.ts` the runner calls
  * `searchCareerHistory` twice — once with rerank disabled (pgvector kNN
- * order) and once with rerank enabled (Cohere cross-encoder) — and prints
- * the top-N chunks side-by-side. The output is markdown for a human
- * reviewer to grade before flipping `CV_CHAT_RERANK=on` on a fork.
+ * order) and once with rerank enabled (AI Gateway → Cohere cross-encoder)
+ * — and prints the top-N chunks side-by-side. The output is markdown for
+ * a human reviewer to grade before flipping `CV_CHAT_RERANK=on` on a fork.
  *
- * Each rerank-on fixture costs one Cohere API call. Don't run in CI.
+ * Each rerank-on fixture costs one gateway-brokered rerank call. Don't run in CI.
  *
  * Usage:
  *   pnpm eval:rerank                    # run all fixtures, print to stdout
@@ -157,7 +157,7 @@ function renderResult(result: FixtureResult): string {
     "",
     offBlock,
     "",
-    `**Rerank ON (Cohere cross-encoder, top ${topN}, ${result.msOn}ms):**`,
+    `**Rerank ON (gateway → cohere/rerank-v3.5, top ${topN}, ${result.msOn}ms):**`,
     "",
     onBlock,
     "",
@@ -165,9 +165,9 @@ function renderResult(result: FixtureResult): string {
 }
 
 async function main() {
-  if (!process.env.COHERE_API_KEY) {
+  if (!process.env.AI_GATEWAY_API_KEY) {
     process.stderr.write(
-      "[rerank-eval] COHERE_API_KEY unset — rerank-on column will fall back to pgvector order. Set the key for a meaningful eval.\n"
+      "[rerank-eval] AI_GATEWAY_API_KEY unset — rerank-on column will fall back to pgvector order. Set the key for a meaningful eval.\n"
     );
   }
 
@@ -193,7 +193,7 @@ async function main() {
   console.log(`Date: ${new Date().toISOString()}`);
   console.log(`Top-N: ${topN}`);
   console.log(
-    `Cohere key: ${process.env.COHERE_API_KEY ? "present" : "missing (on=fallback)"}`
+    `Gateway key: ${process.env.AI_GATEWAY_API_KEY ? "present" : "missing (on=fallback)"}`
   );
   console.log("");
   for (const result of results) {
