@@ -303,8 +303,12 @@ const PurePreviewMessage = ({
       );
     }
 
-    if (type === "tool-generateTailoredResume") {
+    if (
+      type === "tool-generateTailoredResume" ||
+      type === "tool-updateTailoredResume"
+    ) {
       const { toolCallId, state } = part;
+      const isUpdate = type === "tool-updateTailoredResume";
 
       let outputNode: ReactNode = null;
       if (state === "output-available") {
@@ -324,14 +328,19 @@ const PurePreviewMessage = ({
         } else if (output.pinned) {
           outputNode = (
             <div className="text-muted-foreground text-xs">
-              Pinned tailored resume to the artifact pane.
+              {isUpdate
+                ? "Updated the pinned tailored resume."
+                : "Pinned tailored resume to the artifact pane."}
               {output.headline ? ` (${output.headline})` : null}
             </div>
           );
         } else {
           outputNode = (
             <div className="text-destructive text-xs">
-              {output.error ?? "Could not generate the tailored resume."}
+              {output.error ??
+                (isUpdate
+                  ? "Could not update the tailored resume."
+                  : "Could not generate the tailored resume.")}
             </div>
           );
         }
@@ -339,7 +348,7 @@ const PurePreviewMessage = ({
 
       return (
         <Tool className="w-[min(100%,450px)]" key={toolCallId}>
-          <ToolHeader state={state} type="tool-generateTailoredResume" />
+          <ToolHeader state={state} type={type} />
           <ToolContent>
             {(state === "input-available" || state === "output-available") && (
               <ToolInput input={part.input} />

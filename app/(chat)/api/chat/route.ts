@@ -28,11 +28,13 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { searchCareerHistoryTool } from "@/lib/ai/tools/search-career-history";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import { updateTailoredResumeTool } from "@/lib/ai/tools/update-tailored-resume";
 import {
   GENERATE_TAILORED_RESUME_TOOL,
   GET_RECENT_ACTIVITY_TOOL,
   isProductionEnvironment,
   SEARCH_CAREER_HISTORY_TOOL,
+  UPDATE_TAILORED_RESUME_TOOL,
 } from "@/lib/constants";
 import {
   createStreamId,
@@ -224,6 +226,7 @@ export async function POST(request: Request) {
                   "requestSuggestions",
                   SEARCH_CAREER_HISTORY_TOOL,
                   GENERATE_TAILORED_RESUME_TOOL,
+                  UPDATE_TAILORED_RESUME_TOOL,
                   GET_RECENT_ACTIVITY_TOOL,
                 ],
           providerOptions: {
@@ -254,6 +257,10 @@ export async function POST(request: Request) {
             }),
             [SEARCH_CAREER_HISTORY_TOOL]: searchCareerHistoryTool({ session }),
             [GENERATE_TAILORED_RESUME_TOOL]: generateTailoredResumeTool({
+              session,
+              dataStream,
+            }),
+            [UPDATE_TAILORED_RESUME_TOOL]: updateTailoredResumeTool({
               session,
               dataStream,
             }),
