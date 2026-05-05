@@ -23,7 +23,7 @@
     "Fira Code", "JetBrains Mono", Monaco, Consolas, "Ubuntu Mono",
     ui-monospace, monospace;
 
-  --radius: 0.625rem;
+  --radius: 0.125rem;
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.12 0 0);
   --card: oklch(1 0 0);
@@ -71,43 +71,44 @@
 }
 
 /*
- * Dark — the terminal palette. Background ≈ #1c1c1c slate; foreground a warm
- * off-white; primary/ring the sage green (#a3d49b) that the blog's nameplate
- * uses. Hover/accent stays neutral so the green only shows on actions and
- * focus — a single accent stays expressive when used sparingly.
+ * Dark — the terminal palette. Background ≈ #1c1c1c slate; foreground the
+ * Gruvbox cream (#ebdbb2) the blog renders body text in; primary/ring the
+ * sage green (#8ec07c) of the blog's nameplate and links. Hover/accent
+ * stays neutral so the green only shows on actions and focus — a single
+ * accent stays expressive when used sparingly.
  */
 .dark {
   --background: oklch(0.205 0 0);
-  --foreground: oklch(0.93 0.005 80);
+  --foreground: oklch(0.894 0.057 89);
   --card: oklch(0.235 0 0);
-  --card-foreground: oklch(0.93 0.005 80);
+  --card-foreground: oklch(0.894 0.057 89);
   --popover: oklch(0.235 0 0);
-  --popover-foreground: oklch(0.93 0.005 80);
-  --primary: oklch(0.82 0.1 140);
+  --popover-foreground: oklch(0.894 0.057 89);
+  --primary: oklch(0.756 0.108 138);
   --primary-foreground: oklch(0.18 0 0);
   --secondary: oklch(0.27 0 0);
   --secondary-foreground: oklch(0.78 0 0);
   --muted: oklch(0.18 0 0);
   --muted-foreground: oklch(0.62 0 0);
   --accent: oklch(0.27 0 0);
-  --accent-foreground: oklch(0.93 0.005 80);
+  --accent-foreground: oklch(0.894 0.057 89);
   --destructive: oklch(0.7 0.18 25);
   --border: oklch(0.27 0 0);
   --input: oklch(0.27 0 0);
-  --ring: oklch(0.82 0.1 140);
-  --chart-1: oklch(0.82 0.1 140);
+  --ring: oklch(0.756 0.108 138);
+  --chart-1: oklch(0.756 0.108 138);
   --chart-2: oklch(0.7 0.12 200);
   --chart-3: oklch(0.78 0.14 70);
   --chart-4: oklch(0.62 0.18 305);
   --chart-5: oklch(0.65 0.22 25);
   --sidebar: oklch(0.18 0 0);
   --sidebar-foreground: oklch(0.78 0 0);
-  --sidebar-primary: oklch(0.82 0.1 140);
+  --sidebar-primary: oklch(0.756 0.108 138);
   --sidebar-primary-foreground: oklch(0.18 0 0);
   --sidebar-accent: oklch(0.93 0.005 80 / 0.06);
-  --sidebar-accent-foreground: oklch(0.93 0.005 80);
+  --sidebar-accent-foreground: oklch(0.894 0.057 89);
   --sidebar-border: oklch(0.25 0 0);
-  --sidebar-ring: oklch(0.82 0.1 140);
+  --sidebar-ring: oklch(0.756 0.108 138);
 
   --shadow-card:
     inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.2),

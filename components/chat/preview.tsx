@@ -25,7 +25,11 @@ export function Preview() {
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8">
         <div className="max-w-md text-center">
           <h2 className="font-semibold text-xl tracking-tight">
-            Welcome to {persona.displayName}'s chat
+            Welcome to{" "}
+            <span className="inline-block rounded-[var(--radius)] bg-primary px-2.5 py-0.5 font-bold text-primary-foreground">
+              {persona.displayName}
+            </span>
+            's chat
           </h2>
           <p className="mt-2 text-foreground/75 text-sm">
             Ask about my work and projects, or have me generate a one-pager
