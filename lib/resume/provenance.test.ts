@@ -26,17 +26,20 @@ const hits: SearchHit[] = [
     content: "...",
     sourcePath: PORTFOLIO.sourcePath,
     headingPath: PORTFOLIO.headingPath,
+    public: true,
     distance: 0.1,
   },
   {
     content: "...",
     sourcePath: BLOG.sourcePath,
     headingPath: BLOG.headingPath,
+    public: true,
     distance: 0.2,
   },
   {
     content: "...",
     sourcePath: TOPLEVEL.sourcePath,
+    public: true,
     distance: 0.3,
   },
 ];

@@ -2,6 +2,7 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { isSessionOwner } from "@/lib/auth/owner";
 import {
   createGuestUser,
   getOrCreateGoogleUser,
@@ -16,6 +17,13 @@ declare module "next-auth" {
     user: {
       id: string;
       type: UserType;
+      /**
+       * Whether the signed-in user is the persona's owner (computed
+       * server-side from `OWNER_EMAIL`). Surfaced on the session so client
+       * components — specifically the citation renderer (SPEC §3.1
+       * Rule 2) — can apply the owner-only chip filter without a round-trip.
+       */
+      isOwner: boolean;
     } & DefaultSession["user"];
   }
 
@@ -126,6 +134,7 @@ export const {
       if (session.user) {
         session.user.id = token.id;
         session.user.type = token.type;
+        session.user.isOwner = isSessionOwner(session);
       }
 
       return session;

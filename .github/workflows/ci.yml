@@ -67,6 +67,15 @@ jobs:
       - name: Run Playwright e2e
         run: pnpm test
 
+      # Smoke checks exercise paths that depend on stochastic real-LLM
+      # behaviour (e.g. whether the model chooses to call a tool for a
+      # given query). They're informational — a flake here surfaces the
+      # signal without blocking a merge. The deterministic logic these
+      # smokes wrap is covered by vitest in `pnpm gates`.
+      - name: Run Playwright smoke (informational)
+        run: pnpm test:smoke
+        continue-on-error: true
+
       - name: Upload Playwright report
         if: always() && !cancelled()
         uses: actions/upload-artifact@v4

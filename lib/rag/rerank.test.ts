@@ -23,6 +23,7 @@ const hit = (id: number, overrides: Partial<SearchHit> = {}): SearchHit => ({
   content: `chunk-${id}`,
   sourcePath: `s${id}.md`,
   headingPath: `Section ${id}`,
+  public: true,
   distance: id * 0.1,
   ...overrides,
 });
